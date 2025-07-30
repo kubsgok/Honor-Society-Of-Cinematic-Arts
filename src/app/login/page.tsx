@@ -1,7 +1,30 @@
+"use client"
+
 import { login, signup } from './actions'
 import Image from "next/image";
+import { useState } from "react";
+import { toast } from "react-hot-toast";
 
 export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const handleLogin = async () => {
+    if(!email || !(email.includes("@")) || email === "") {
+      toast.error("Please enter a valid email");
+      return;
+    }
+    if (!password || password === "") {
+      toast.error("Please enter a valid password");
+      return;
+    }
+    const formData = new FormData();
+    formData.append('email', email);
+    formData.append('password', password);
+    console.log("formData", formData);
+    await login(formData);
+  };
+
   return (
     <div className="flex flex-row min-h-screen">
       <div className="w-1/2 flex-col">
@@ -10,12 +33,52 @@ export default function LoginPage() {
         height={50}
         src="/images/hscaLogoWhiteBackground.jpeg" 
         alt="HSCA Logo" 
-        className="p-5 w-1/4"/>
-        <h1 className="text-black text-4xl font-bold">
+        className="p-10 w-1/3"/>
+        <h1 className="text-black text-4xl font-extrabold pl-10">
           Welcome!
         </h1>
-        <h1>Left side content</h1>
-      </div>
+        <p className="text-black text-xl pl-10 pt-2">
+          Sign in to access your HSCA account
+        </p>
+        <p className="text-black pl-10 pt-5 pb-2">Email</p>
+        <div className="pl-10 pb-3">
+          <input 
+            type="email" 
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Enter your email"
+            className="placeholder:text-[#535151] p-2 border border-[#535151] rounded-md w-1/2"/>
+        </div>
+        <p className="text-black pl-10 pt-5 pb-2">Password</p>
+        <div className="pl-10 pb-2">
+          <input 
+            type="password" 
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Enter your password"
+            className="placeholder:text-[#535151] p-2 border border-[#535151] rounded-md w-1/2"/>
+        </div>
+        <span 
+        onClick={() => {console.log("manage forgot password")}} 
+        className="text-[#520392] text-sm text-right block w-1/2 ml-5 cursor-pointer hover:underline">
+          Forgot password?
+        </span>
+        <div className="pl-10 pb-2 pt-8">
+          <button
+          onClick={handleLogin}
+          className="bg-[#520392] text-white p-2 rounded-md w-1/2 cursor-pointer">
+            Login
+          </button>
+        </div>
+        <div className="pl-10 pb-2 w-1/2">
+          <p className="text-black text-sm text-center">
+            Don't have an account? 
+            <span className="text-[#520392] text-sm text-center cursor-pointer hover:underline ml-1">
+              Sign up
+            </span>
+          </p>
+        </div>
+        </div>
       <div className="w-1/2 bg-[#520392]">
       </div>
     </div>
