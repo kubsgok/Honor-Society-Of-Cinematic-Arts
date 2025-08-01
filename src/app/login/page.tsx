@@ -1,11 +1,13 @@
 "use client"
 
-import { login, signup } from './actions'
+import { login} from '../../utils/login-signup/actions'
 import Image from "next/image";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -24,6 +26,10 @@ export default function LoginPage() {
     console.log("formData", formData);
     await login(formData);
   };
+
+  const resetPassword = async () => {
+
+  }
 
   return (
     <div className="flex flex-row min-h-screen">
@@ -73,7 +79,9 @@ export default function LoginPage() {
         <div className="pl-10 pb-2 w-1/2">
           <p className="text-black text-sm text-center">
             Don't have an account? 
-            <span className="text-[#520392] text-sm text-center cursor-pointer hover:underline ml-1">
+            <span 
+            onClick={() => router.push("/signup")}
+            className="text-[#520392] text-sm text-center cursor-pointer hover:underline ml-1">
               Sign up
             </span>
           </p>
