@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { months } from "../../lib/lists/months";
 import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -17,6 +18,7 @@ export default function SignupPage() {
   const [school, setSchool] = useState("");
   const [month, setMonth] = useState("");
   const [year, setYear] = useState<number>(new Date().getFullYear());
+  const error = useSearchParams().get("error");
 
   // TODO: replace with an endpoint that gets the schools from 'chapters' table in database
   const dummySchools = ["Singapore American School", "International School Bangkok", "International School of Kuala Lumpur", "International School Manila", "Jakarta Intercultural School", "Taipei American School"];
@@ -30,37 +32,36 @@ export default function SignupPage() {
       toast.error("Please enter a valid password");
       return;
     }
-    if (!dateOfBirth) {
-      toast.error("Please enter your date of birth");
-      return;
-    }
+    // if (!dateOfBirth) {
+    //   toast.error("Please enter your date of birth");
+    //   return;
+    // }
     
     // Validate date only when submitting
-    const date = new Date(dateOfBirth);
-    if (isNaN(date.getTime())) {
-      toast.error("Please enter a valid date of birth");
-      return;
-    }
+    // const date = new Date(dateOfBirth);
+    // if (isNaN(date.getTime())) {
+    //   toast.error("Please enter a valid date of birth");
+    //   return;
+    // }
     
-    const formData = new FormData();
-    formData.append('email', email);
-    formData.append('password', password);
-    formData.append('dateOfBirth', date.toISOString());
-    console.log("formData", formData);
-    await signup(formData);
+    console.log("Submitting signup with:", { email, password });
+    await signup(email, password);
   };
 
   const handleDateChange = (dateString: string) => {
     setDateOfBirth(dateString);
   };
 
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+      router.replace('/signup');
+    }
+  }, [error, router]);
+
   const resetPassword = async () => {
 
   }
-
-  useEffect(() => {
-    console.log("dateOfBirth", dateOfBirth);
-  }, [dateOfBirth]);
 
   return (
     <div className="flex flex-row min-h-screen">

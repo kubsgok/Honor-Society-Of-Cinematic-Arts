@@ -2,14 +2,16 @@
 
 import { login} from '../../utils/login-signup/actions'
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const error = useSearchParams().get("error");
 
   const handleLogin = async () => {
     if(!email || !(email.includes("@")) || email === "") {
@@ -20,12 +22,16 @@ export default function LoginPage() {
       toast.error("Please enter a valid password");
       return;
     }
-    const formData = new FormData();
-    formData.append('email', email);
-    formData.append('password', password);
-    console.log("formData", formData);
-    await login(formData);
+    await login(email, password);
   };
+
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+      // Clear the error parameter from URL
+      router.replace('/login');
+    }
+  }, [error, router]);
 
   const resetPassword = async () => {
 
