@@ -59,10 +59,6 @@ export default function SignupPage() {
     }
   }, [error, router]);
 
-  const resetPassword = async () => {
-
-  }
-
   return (
     <div className="flex flex-row min-h-screen">
       <div className="w-1/2 flex-col">
