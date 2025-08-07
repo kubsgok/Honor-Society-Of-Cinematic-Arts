@@ -65,7 +65,7 @@ export default function SignupPage() {
         <Image 
         width={50}
         height={50}
-        src="/images/hscaLogoWhiteBackground.jpeg" 
+        src="/images/hscaLogoAndTextTransparentBg.png" 
         alt="HSCA Logo" 
         className="p-10 w-1/3"/>
         <h1 className="text-black text-4xl font-extrabold pl-10">

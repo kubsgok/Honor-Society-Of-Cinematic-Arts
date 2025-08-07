@@ -13,16 +13,17 @@ export const NavBar = () => {
           {/* Logo Section */}
           <div className="flex-shrink-0 mr-8 cursor-pointer" onClick={() => console.log("push to default page, maybe the front end?")}>
             <Image 
-            width={112}
-            height={91}
-            src="/images/hscaLogoWhiteBackground.jpeg" 
-            alt="HSCA Logo" />
+            width={75}
+            height={65}
+            src="/images/hscaLogoTransparentBg.png" 
+            alt="HSCA Logo"
+            className="ml-3 p-1" />
           </div>
 
           {/* Navigation Links */}
           <div className="flex space-x-10">
             <button
-              className={`text-[21px] font-crimson font-bold text-white px-6 py-3 rounded-xl ${
+              className={`text-[21px] font-bold text-white px-6 py-3 rounded-xl cursor-pointer ${
                 currentPath
                   ? "bg-[#D9D9D9] hover:bg-opacity-90 bg-opacity-30"
                   : "bg-transparent hover:bg-[#D9D9D9] hover:bg-opacity-30"
@@ -32,7 +33,7 @@ export const NavBar = () => {
               Dashboard
             </button>
             <button
-              className={`text-[21px] font-crimson font-bold text-white px-6 py-3 rounded-xl ${
+              className={`text-[21px] font-bold text-white px-6 py-3 rounded-xl cursor-pointer ${
                 currentPath
                   ? "bg-[#D9D9D9] hover:bg-opacity-90 bg-opacity-30"
                   : "bg-transparent hover:bg-[#D9D9D9] hover:bg-opacity-30"
@@ -48,11 +49,14 @@ export const NavBar = () => {
             <div className="relative">
               <button
                 onClick={() => console.log("push to my profile page")}
-                className="flex items-center text-[21px] font-crimson font-bold text-white"
+                className={`flex items-center justify-center aspect-square w-18 h-18 text-[21px] font-bold rounded-full text-white cursor-pointer ${
+                    currentPath
+                      ? "bg-[#D9D9D9] hover:bg-opacity-90 bg-opacity-30"
+                      : "bg-transparent hover:bg-[#D9D9D9] hover:bg-opacity-30"
+                  }`}
               >
-                <CircleUserRound />
+                <CircleUserRound size={40} />
               </button>
-              {/* Dropdown Menu */}
             </div>
           </div>
         </div>
