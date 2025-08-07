@@ -16,8 +16,8 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState<string>("");
   const [school, setSchool] = useState("");
-  const [month, setMonth] = useState("");
-  const [year, setYear] = useState<number>(new Date().getFullYear());
+  const [gradMonth, setGradMonth] = useState("");
+  const [gradYear, setGradYear] = useState<number>(new Date().getFullYear());
   const error = useSearchParams().get("error");
 
   // TODO: replace with an endpoint that gets the schools from 'chapters' table in database
@@ -141,8 +141,8 @@ export default function SignupPage() {
         <div className="pl-10 pb-2 flex gap-8 justify-start">
           <select
             id="month"
-            value={month}
-            onChange={(e) => setMonth(e.target.value)}
+            value={gradMonth}
+            onChange={(e) => setGradMonth(e.target.value)}
             className="placeholder:text-[#535151] p-2 border border-[#535151] rounded-md w-9/40"
           >
             {months.map((month) => (
@@ -151,8 +151,8 @@ export default function SignupPage() {
           </select>
           <input 
             type="year" 
-            value={year}
-            onChange={(e) => setYear(Number(e.target.value))}
+            value={gradYear}
+            onChange={(e) => setGradYear(Number(e.target.value))}
             className="placeholder:text-[#535151] p-2 border border-[#535151] rounded-md w-9/40"/>
         </div>
         <div className="pl-10 pb-2 pt-8">
