@@ -45,11 +45,11 @@ export const NavBar = () => {
           </div>
 
           <div className="absolute right-10 flex items-center space-x-4">
-            {/* User Name and Dropdown */}
+            {/* User Icon */}
             <div className="relative">
               <button
                 onClick={() => console.log("push to my profile page")}
-                className={`flex items-center justify-center aspect-square w-18 h-18 text-[21px] font-bold rounded-full text-white cursor-pointer ${
+                className={`flex items-center justify-center aspect-square w-16 h-16 text-[21px] font-bold rounded-xl text-white cursor-pointer ${
                     currentPath
                       ? "bg-[#D9D9D9] hover:bg-opacity-90 bg-opacity-30"
                       : "bg-transparent hover:bg-[#D9D9D9] hover:bg-opacity-30"
