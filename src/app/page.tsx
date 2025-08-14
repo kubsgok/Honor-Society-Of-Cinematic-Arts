@@ -1,6 +1,38 @@
+"use client";
+
+import { createClient } from "@/utils/supabase/client";
 import Image from "next/image";
+import { useEffect, useState } from "react";
 
 export default function Home() {
+  const [user, setUser] = useState<any>(null);
+  const [userData, setUserData] = useState<any>(null);
+  const supabase = createClient();
+
+  useEffect(() => {
+    getUserInfo();
+  }, []);
+
+  const getUserInfo = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      
+      if (user?.email) {
+        console.log("fetching user info");
+        const { data: userData } = await supabase
+          .from("users")
+          .select("*")
+          .eq("email", user.email)
+          .single();
+        console.log("user data: ", userData);
+        setUserData(userData);
+      }
+    } catch (error) {
+      console.error("Error fetching user info: ", error);
+    }
+  }
+
   return (
     <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
       <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
@@ -12,6 +44,9 @@ export default function Home() {
           height={38}
           priority
         />
+        <h1 className="text-4xl font-bold">My user info:</h1>
+        <p>Retrieving user's email from auth session: {user?.email}</p>
+        <p>User info: {userData ? JSON.stringify(userData) : 'Loading...'}</p>
         <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
           <li className="mb-2 tracking-[-.01em]">
             Get started by editing{" "}

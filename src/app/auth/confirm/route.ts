@@ -18,6 +18,38 @@ export async function GET(request: NextRequest) {
       token_hash,
     })
     if (!error) {
+      // insert the user in the database
+      try {
+        // Get the verified user's email from auth session
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (user?.email) {
+          // Find the temp user record for this email
+          const { data: tempUser } = await supabase
+            .from("temp_users")
+            .select("*")
+            .eq("email", user.email)
+            .single();
+            
+          if (tempUser) {
+            // Insert into users table
+            await supabase.from("users").insert({
+              email: tempUser.email,
+              full_name: tempUser.full_name,
+              dob: tempUser.dob,
+              grad_month: tempUser.grad_month,
+              grad_year: tempUser.grad_year
+            });
+
+
+            // Delete the temp user record
+            await supabase.from("temp_users").delete().eq("email", user.email);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching temp user info: ", error)
+      }
+
       // redirect user to specified redirect URL or root of app
       redirect(next)
     }

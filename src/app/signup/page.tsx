@@ -7,6 +7,7 @@ import { toast } from "react-hot-toast";
 import { months } from "../../lib/lists/months";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
+import { createClient } from '@/utils/supabase/client'
 
 export default function SignupPage() {
   const router = useRouter();
@@ -20,10 +21,16 @@ export default function SignupPage() {
   const [gradYear, setGradYear] = useState<number>(new Date().getFullYear());
   const error = useSearchParams().get("error");
 
+  const supabase = createClient();
+
   // TODO: replace with an endpoint that gets the schools from 'chapters' table in database
   const dummySchools = ["Singapore American School", "International School Bangkok", "International School of Kuala Lumpur", "International School Manila", "Jakarta Intercultural School", "Taipei American School"];
 
   const handleSignup = async () => {
+    if (!firstName || !lastName) {
+      toast.error("Please enter your first and last name");
+      return;
+    }
     if(!email || !(email.includes("@")) || email === "") {
       toast.error("Please enter a valid email");
       return;
@@ -32,19 +39,39 @@ export default function SignupPage() {
       toast.error("Please enter a valid password");
       return;
     }
-    // if (!dateOfBirth) {
-    //   toast.error("Please enter your date of birth");
-    //   return;
-    // }
+    if (!dateOfBirth) {
+      toast.error("Please enter your date of birth");
+      return;
+    }
     
     // Validate date only when submitting
-    // const date = new Date(dateOfBirth);
-    // if (isNaN(date.getTime())) {
-    //   toast.error("Please enter a valid date of birth");
-    //   return;
-    // }
+    const date = new Date(dateOfBirth);
+    if (isNaN(date.getTime())) {
+      toast.error("Please enter a valid date of birth");
+      return;
+    }
+
+    if (!gradMonth || !gradYear) {
+      toast.error("Please enter a valid graduation month and year");
+      return;
+    }
+    //TODO: add validation to ensure gradYear is valid
     
-    console.log("Submitting signup with:", { email, password });
+    //saving user info to temp_users table in supabase
+    try {
+      await supabase.from("temp_users").insert({
+        email: email,
+        full_name: `${firstName} ${lastName}`,
+        dob: dateOfBirth,
+        grad_month: gradMonth,
+        grad_year: gradYear
+      });
+    } catch (error) {
+      console.error("Error saving user info to temp_users table:", error);
+      return;
+    }
+
+    // creating a user in the authentication database
     await signup(email, password);
   };
 
