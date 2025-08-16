@@ -19,13 +19,11 @@ export default function Home() {
       setUser(user);
       
       if (user?.email) {
-        console.log("fetching user info");
         const { data: userData } = await supabase
           .from("users")
           .select("*")
           .eq("email", user.email)
           .single();
-        console.log("user data: ", userData);
         setUserData(userData);
       }
     } catch (error) {
