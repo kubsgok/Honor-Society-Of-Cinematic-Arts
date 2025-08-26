@@ -3,9 +3,9 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import { NavBar } from '../components/NavBar'
 import { BookOpen, School, Shield, ShieldOff, SquareCheck, Square } from 'lucide-react'
-import { CopyAllPill } from '../components/CopyAllPill'
+import { InteractivePill } from '../components/InteractivePill'
 
-export default async function PrivatePage() {
+export default async function DashboardPage() {
   const supabase = await createClient()
 
   const { data, error } = await supabase.auth.getUser()
@@ -58,11 +58,21 @@ export default async function PrivatePage() {
                   <th className="border border-gray-300 px-2 py-2 text-left">
                     <div className="flex items-center w-full">
                       <span>Name</span>
-                      <CopyAllPill className="ml-auto" names={(users ?? []).map((u: any) => u.full_name)} />
+                      <InteractivePill className="ml-auto" names={(users ?? []).map((u: any) => u.full_name)} buttonText="Copy All" />
                     </div>
                   </th>
-                  <th className="border border-gray-300 px-3 py-2 text-left">Email</th>
-                  <th className="border border-gray-300 px-3 py-2 text-left">Rank</th>
+                  <th className="border border-gray-300 px-2 py-2 text-left">
+                    <div className="flex items-center w-full">
+                      <span>Email</span>
+                      <InteractivePill className="ml-auto" names={(users ?? []).map((u: any) => u.email)} buttonText="Copy All" />
+                    </div>
+                  </th>
+                  <th className="border border-gray-300 px-2 py-2 text-left">
+                    <div className="flex items-center w-full">
+                      <span>Rank</span>
+                      <InteractivePill className="ml-auto" names={(users ?? []).map((u: any) => u.email)} buttonText="Edit" />
+                    </div>
+                  </th>
                   <th className="border border-gray-300 px-3 py-2 text-left">Position</th>
                   <th className="border border-gray-300 px-3 py-2 text-left">In Good Standing</th>
                   <th className="border border-gray-300 px-3 py-2 text-left">Points</th>

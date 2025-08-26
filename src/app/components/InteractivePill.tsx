@@ -2,12 +2,13 @@
 
 import React from 'react'
 
-type CopyAllPillProps = {
+type InteractivePillProps = {
 	className?: string
 	names: Array<string | null | undefined>
+	buttonText?: string
 }
 
-export function CopyAllPill({ className, names }: CopyAllPillProps) {
+export function InteractivePill({ className, names, buttonText }: InteractivePillProps) {
 	const handleClick = React.useCallback(async () => {
 		const joinedNames = (names ?? [])
 			.filter((name): name is string => Boolean(name && name.trim().length > 0))
@@ -24,7 +25,7 @@ export function CopyAllPill({ className, names }: CopyAllPillProps) {
 			onClick={handleClick}
 			className={`text-white text-xs font-medium rounded-full px-2 py-0.5 bg-[#b66cee] cursor-pointer select-none ${className ?? ''}`}
 		>
-			Copy All
+			{buttonText}
 		</span>
 	)
 } 
