@@ -2,14 +2,14 @@
 
 import React from 'react'
 
-type InteractivePillProps = {
+type CopyPillProps = {
 	className?: string
 	names: Array<string | null | undefined>
 	buttonText?: string
 }
 
-export function InteractivePill({ className, names, buttonText }: InteractivePillProps) {
-	const handleClick = React.useCallback(async () => {
+export function CopyPill({ className, names}: CopyPillProps) {
+	const handleCopyClick = React.useCallback(async () => {
 		const joinedNames = (names ?? [])
 			.filter((name): name is string => Boolean(name && name.trim().length > 0))
 			.join(', ')
@@ -22,10 +22,10 @@ export function InteractivePill({ className, names, buttonText }: InteractivePil
 
 	return (
 		<span
-			onClick={handleClick}
+			onClick={handleCopyClick}
 			className={`text-white text-xs font-medium rounded-full px-2 py-0.5 bg-[#b66cee] cursor-pointer select-none ${className ?? ''}`}
 		>
-			{buttonText}
+			{"Copy All"}
 		</span>
 	)
 } 
