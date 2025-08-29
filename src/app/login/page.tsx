@@ -41,10 +41,10 @@ export default function LoginPage() {
     <div className="flex flex-row min-h-screen">
       <div className="w-1/2 flex-col">
         <Image 
-        width={50}
-        height={50}
+        width={600}
+        height={250}
         src="/images/hscaLogoAndTextTransparentBg.png" 
-        alt="HSCA Logo" 
+        alt="HSCA Banner" 
         className="p-10 w-1/3"/>
         <h1 className="text-black text-4xl font-extrabold pl-10">
           Welcome!
