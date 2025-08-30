@@ -28,7 +28,9 @@ export async function signup(email: string, password: string) {
   const { error } = await supabase.auth.signUp({ email, password });
 
   if (error) {
-    redirect('/signup?error=Signup failed');
+    // Log the actual error to the terminal for debugging
+    console.error('Supabase signup error:', error.message || error.description || error);
+    redirect(`/signup?error=${encodeURIComponent(error.message || 'Signup failed')}`);
   }
 
   revalidatePath('/', 'layout');
