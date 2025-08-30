@@ -2,8 +2,6 @@ import { redirect } from 'next/navigation'
 
 import { createClient } from '@/utils/supabase/server'
 import { NavBar } from '../components/NavBar'
-import { BookOpen, School, Shield, ShieldOff, SquareCheck, Square, Pencil } from 'lucide-react'
-import { CopyPill } from '../components/CopyPill'
 import { DashboardTable } from '../components/DashboardTable'
 
 export default async function DashboardPage() {
@@ -14,10 +12,16 @@ export default async function DashboardPage() {
     redirect('/login')
   }
 
+
   const { data: users, error: usersError } = await supabase
     .from('users')
     .select('id, full_name, email, user_type, rank, induction_status, in_good_standing, points, minutes_film_produced')
     .order('full_name', { ascending: true })
+
+  if (usersError) {
+    console.error('Failed to fetch users:', usersError)
+    return
+  }
 
   return (
     <div>

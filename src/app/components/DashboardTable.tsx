@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { BookOpen, School, Shield, SquareCheck, Square, Pencil } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { BookOpen, School, Shield, ShieldOff, SquareCheck, Square } from 'lucide-react'
 import { CopyPill } from './CopyPill'
+import { PointsModificationModal } from './PointsModificationModal'
 
 interface User {
   id: string
@@ -33,6 +34,34 @@ export function DashboardTable({ users }: DashboardTableProps) {
     } else {
       return rank
     }
+  }
+
+  const handleSavePointsModification = async (selectedUserIds: string[], modification: number, description: string) => {
+    const currentUser: User | null = await fetch('/api/getCurrentUser')
+      .then(res => res.ok ? res.json() : null)
+      .catch(err => {
+        console.error('Error fetching current user:', err)
+        return null
+      })
+    if (!currentUser) {
+      console.error('Failed to fetch current user')
+      return
+    }
+    const modifiedBy = currentUser.id
+    const response = await fetch('/api/createPointsLog', {
+      method: 'POST',
+      body: JSON.stringify({
+        userIds: selectedUserIds,
+        modification,
+        description,
+        modifiedBy
+      })
+    })
+    if (!response.ok) {
+      console.error('Failed to create points log')
+      return
+    }
+    setIsEditMode(false)
   }
 
   return (
@@ -79,9 +108,9 @@ export function DashboardTable({ users }: DashboardTableProps) {
                 <span>Points</span>
                 <span
                   onClick={toggleEditMode}
-                  className="text-white text-xs font-medium rounded-full px-2 py-0.5 bg-[#b66cee] cursor-pointer select-none ml-2"
+                  className="ml-auto text-white text-xs font-medium rounded-full px-2 py-0.5 bg-[#b66cee] cursor-pointer select-none ml-2"
                 >
-                  {isEditMode ? 'Cancel' : 'Edit'}
+                  Edit
                 </span>
               </div>
             </th>
@@ -99,14 +128,7 @@ export function DashboardTable({ users }: DashboardTableProps) {
               <td className="border border-gray-200 px-3 py-2">{u.in_good_standing ? 
                   <SquareCheck className="h-6 w-6 mr-2 text-gray-600" /> : <Square className="h-6 w-6 mr-2 text-gray-600" />}</td>
               <td className="border border-gray-200 px-3 py-2">
-                {isEditMode ? (
-                  <div className="flex items-center">
-                    <span className="mr-2">{u.points ?? 0}</span>
-                    <Pencil className="h-4 w-4 text-gray-600 cursor-pointer" />
-                  </div>
-                ) : (
-                  u.points ?? 0
-                )}
+                {u.points ?? 0}
               </td>
               <td className="border border-gray-200 px-3 py-2">{u.minutes_film_produced ?? 0}</td>
               <td className="border border-gray-200 px-3 py-2">{u.induction_status ?? '-'}</td>
@@ -119,6 +141,12 @@ export function DashboardTable({ users }: DashboardTableProps) {
           )}
         </tbody>
       </table>
+      <PointsModificationModal
+        isOpen={isEditMode}
+        onClose={() => setIsEditMode(false)}
+        onSave={(selectedUserIds: string[], modification: number, description: string) => handleSavePointsModification(selectedUserIds, modification, description)}
+        users={users}
+      />
     </div>
   )
 }
