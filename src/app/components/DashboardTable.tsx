@@ -19,9 +19,10 @@ interface User {
 
 interface DashboardTableProps {
   users: User[]
+  onRefreshUsers: () => void
 }
 
-export function DashboardTable({ users }: DashboardTableProps) {
+export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
   const [isEditMode, setIsEditMode] = useState(false)
 
   const toggleEditMode = () => {
@@ -61,7 +62,20 @@ export function DashboardTable({ users }: DashboardTableProps) {
       console.error('Failed to create points log')
       return
     }
+    const newResponse = await fetch('/api/updateUserInfo', {
+      method: 'PUT',
+      body: JSON.stringify({
+        user_ids: selectedUserIds,
+        points: modification,
+        modification: 'points'
+      })
+    })
+    if (!newResponse.ok) {
+      console.error('Failed to update user info')
+      return
+    }
     setIsEditMode(false)
+    onRefreshUsers() // Refresh the user data
   }
 
   return (

@@ -5,8 +5,21 @@ import { useRouter } from "next/navigation";
 import { CircleUserRound } from "lucide-react";
 import Image from "next/image";
 
+declare global {
+  interface Window {
+    preventNavigation?: boolean;
+  }
+}
+
 export const NavBar = () => {
-    const [currentPath, setCurrentPath] = useState(false);
+    const router = useRouter();
+    const [currentPath, setCurrentPath] = useState("");
+
+    useEffect(() => {
+    if (typeof window !== "undefined") {
+      setCurrentPath(window.location.pathname);
+    }
+  }, []);
 
     return (
         <div className="relative w-full h-[90px] bg-[#520392] flex items-center shadow-xl">
@@ -24,17 +37,17 @@ export const NavBar = () => {
           <div className="flex space-x-10">
             <button
               className={`text-[21px] font-bold text-white px-6 py-3 rounded-xl cursor-pointer ${
-                currentPath
+                currentPath == '/dashboard'
                   ? "bg-[#D9D9D9] hover:bg-opacity-90 bg-opacity-30"
                   : "bg-transparent hover:bg-[#D9D9D9] hover:bg-opacity-30"
               }`}
-              onClick={() => console.log("push to dashboard page")}
+              onClick={() => router.push("/dashboard")}
             >
               Dashboard
             </button>
             <button
               className={`text-[21px] font-bold text-white px-6 py-3 rounded-xl cursor-pointer ${
-                currentPath
+                currentPath == '/educational-resources'
                   ? "bg-[#D9D9D9] hover:bg-opacity-90 bg-opacity-30"
                   : "bg-transparent hover:bg-[#D9D9D9] hover:bg-opacity-30"
               }`}
@@ -50,7 +63,7 @@ export const NavBar = () => {
               <button
                 onClick={() => console.log("push to my profile page")}
                 className={`flex items-center justify-center aspect-square w-16 h-16 text-[21px] font-bold rounded-xl text-white cursor-pointer ${
-                    currentPath
+                    currentPath == '/profile'
                       ? "bg-[#D9D9D9] hover:bg-opacity-90 bg-opacity-30"
                       : "bg-transparent hover:bg-[#D9D9D9] hover:bg-opacity-30"
                   }`}

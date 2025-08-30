@@ -20,6 +20,7 @@ export function PointsModificationModal({ isOpen, onClose, onSave, users }: Poin
   const [selectedMembers, setSelectedMembers] = useState<string[]>([])
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [modification, setModification] = useState(0)
+  const [modType, setModType] = useState<'add' | 'subtract' | ''>('')
   const [description, setDescription] = useState('')
 
   if (!isOpen) return null
@@ -113,8 +114,13 @@ export function PointsModificationModal({ isOpen, onClose, onSave, users }: Poin
               <select 
               className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-500"
               onChange={(e) => {
-                const currentValue = Math.abs(modification)
-                setModification(e.target.value === 'subtract' ? -currentValue : currentValue)
+                const value = e.target.value as 'add' | 'subtract' | ''
+                setModType(value)
+                // Flip the sign of the current non-zero modification when type changes
+                if (modification !== 0) {
+                  const absVal = Math.abs(modification)
+                  setModification(value === 'subtract' ? -absVal : absVal)
+                }
               }}>
                 <option value="">Type</option>
                 <option value="add">Add</option>
@@ -124,7 +130,16 @@ export function PointsModificationModal({ isOpen, onClose, onSave, users }: Poin
                 type="number"
                 placeholder="Number of points"
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                onChange={(e) => setModification(parseInt(e.target.value) || 0)}
+                onChange={(e) => {
+                  const n = Number(e.target.value)
+                  if (!Number.isFinite(n)) {
+                    setModification(0)
+                    return
+                  }
+                  const absVal = Math.abs(n)
+                  const signed = modType === 'subtract' ? -absVal : absVal
+                  setModification(signed)
+                }}
               />
             </div>
           </div>
