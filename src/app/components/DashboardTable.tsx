@@ -5,6 +5,7 @@ import { BookOpen, School, Shield, ShieldOff, SquareCheck, Square } from 'lucide
 import { CopyPill } from './CopyPill'
 import { PointsModificationModal } from './PointsModificationModal'
 import { MinutesFilmProducedModal } from './MinutesFilmProducedModal'
+import { InGoodStandingModal } from './InGoodStandingModal'
 
 interface User {
   id: string
@@ -28,6 +29,10 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
   const [isEditMinutesFilmMode, setIsEditMinutesFilmMode] = useState(false)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [isOfficer, setIsOfficer] = useState(false)
+  const [isEditInGoodStandingMode, setIsEditInGoodStandingMode] = useState(false)
+  const [isGoodStandingModalOpen, setIsGoodStandingModalOpen] = useState(false)
+  const [pendingGoodStandingUserId, setPendingGoodStandingUserId] = useState<string | null>(null)
+  const [pendingGoodStandingUserName, setPendingGoodStandingUserName] = useState<string>('')
 
   const toggleEditPointsMode = () => {
     setIsEditPointsMode(!isEditPointsMode)
@@ -35,6 +40,10 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
 
   const toggleEditMinutesFilmMode = () => {
     setIsEditMinutesFilmMode(!isEditMinutesFilmMode)
+  }
+
+  const toggleEditInGoodStandingMode = () => {
+    setIsEditInGoodStandingMode(!isEditInGoodStandingMode)
   }
 
   const getPosition = (rank: string) => {
@@ -150,7 +159,31 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
     }
     setIsEditMinutesFilmMode(false)
     onRefreshUsers() // Refresh the user data
+  }
 
+  const handleSaveGoodStandingModification = async (confirmed: boolean) => {
+    if (!confirmed) {
+      setIsGoodStandingModalOpen(false)
+      return
+    }
+    if (!pendingGoodStandingUserId) {
+      setIsGoodStandingModalOpen(false)
+      return
+    }
+    const res = await fetch('/api/updateUserInfo', {
+      method: 'PUT',
+      body: JSON.stringify({
+        user_id: pendingGoodStandingUserId,
+        modification: 'in_good_standing',
+      })
+    })
+    setIsGoodStandingModalOpen(false)
+    if (!res.ok) {
+      console.error('Failed to update standing')
+      return
+    }
+    setIsEditInGoodStandingMode(false)
+    onRefreshUsers()
   }
 
   return (
@@ -191,7 +224,19 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
               Rank
             </th>
             <th className="border border-gray-300 px-3 py-2 text-left">Position</th>
-            <th className="border border-gray-300 px-3 py-2 text-left">In Good Standing</th>
+            <th className="border border-gray-300 px-3 py-2 text-left">
+            <div className="flex items-center w-full">
+              <span>In Good Standing</span>
+              {currentUser?.user_type === 'Chapter Director' && (
+                <span
+                  onClick={toggleEditInGoodStandingMode}
+                  className="ml-auto text-white text-xs font-medium rounded-full px-2 py-0.5 bg-[#b66cee] cursor-pointer select-none ml-2"
+                >
+                  Edit
+                </span>
+              )}
+            </div>
+          </th>
             <th className="border border-gray-300 px-3 py-2 text-left">
               <div className="flex items-center w-full">
                 <span>Points</span>
@@ -229,8 +274,24 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
               <td className="border border-gray-200 px-3 py-2">{u.email ?? '-'}</td>
               <td className="border border-gray-200 px-3 py-2">{u.rank ?? '-'}</td>
               <td className="border border-gray-200 px-3 py-2">{getPosition(u.user_type) ?? '-'}</td>
-              <td className="border border-gray-200 px-3 py-2">{u.in_good_standing ? 
-                  <SquareCheck className="h-6 w-6 mr-2 text-gray-600" /> : <Square className="h-6 w-6 mr-2 text-gray-600" />}</td>
+              <td className="border border-gray-200 px-3 py-2">
+              {isEditInGoodStandingMode ? (
+                <input
+                  type="checkbox"
+                  checked={u.in_good_standing}
+                  onChange={(e) => {
+                    setPendingGoodStandingUserId(u.id)
+                    setPendingGoodStandingUserName(u.full_name || u.email)
+                    setIsGoodStandingModalOpen(true)
+                  }}
+                  className="h-5 w-5 cursor-pointer"
+                />
+              ) : (
+                u.in_good_standing
+                  ? <SquareCheck className="h-6 w-6 mr-2 text-gray-600" />
+                  : <Square className="h-6 w-6 mr-2 text-gray-600" />
+              )}
+            </td>
               <td className="border border-gray-200 px-3 py-2">
                 {u.points ?? 0}
               </td>
@@ -256,6 +317,14 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
         onClose={() => setIsEditMinutesFilmMode(false)}
         onSave={(selectedUserIds: string[], modification: number, goodEffort: boolean, crewMin: boolean, screened: boolean, description: string) => handleSaveMinutesFilmModification(selectedUserIds, modification, goodEffort, crewMin, screened, description)}
         users={users}
+      />
+      <InGoodStandingModal
+        isOpen={isGoodStandingModalOpen}
+        onClose={() => setIsGoodStandingModalOpen(false)}
+        onSave={(confirmed: boolean) => {
+          handleSaveGoodStandingModification(confirmed)
+        }}
+        user_name={pendingGoodStandingUserName}
       />
     </div>
   )
