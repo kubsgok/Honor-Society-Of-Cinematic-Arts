@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { BookOpen, School, Shield, ShieldOff, SquareCheck, Square } from 'lucide-react'
 import { CopyPill } from './CopyPill'
 import { PointsModificationModal } from './PointsModificationModal'
+import { MinutesFilmProducedModal } from './MinutesFilmProducedModal'
 
 interface User {
   id: string
@@ -23,10 +24,17 @@ interface DashboardTableProps {
 }
 
 export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
-  const [isEditMode, setIsEditMode] = useState(false)
+  const [isEditPointsMode, setIsEditPointsMode] = useState(false)
+  const [isEditMinutesFilmMode, setIsEditMinutesFilmMode] = useState(false)
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const [isOfficer, setIsOfficer] = useState(false)
 
-  const toggleEditMode = () => {
-    setIsEditMode(!isEditMode)
+  const toggleEditPointsMode = () => {
+    setIsEditPointsMode(!isEditPointsMode)
+  }
+
+  const toggleEditMinutesFilmMode = () => {
+    setIsEditMinutesFilmMode(!isEditMinutesFilmMode)
   }
 
   const getPosition = (rank: string) => {
@@ -36,6 +44,27 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
       return rank
     }
   }
+
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      const currentUser: User | null = await fetch('/api/getCurrentUser')
+        .then(res => res.ok ? res.json() : null)
+        .catch(err => {
+          console.error('Error fetching current user:', err)
+          return null
+        })
+      if (!currentUser) {
+        console.error('Failed to fetch current user')
+        return
+      }
+      setCurrentUser(currentUser)
+      if (currentUser.user_type === 'Officer' || currentUser.user_type === 'Vice President' || currentUser.user_type === 'President' || currentUser.user_type === 'Chapter Director') {
+        setIsOfficer(true)
+      }
+    }
+    
+    fetchCurrentUser()
+  }, [])
 
   const handleSavePointsModification = async (selectedUserIds: string[], modification: number, description: string) => {
     const currentUser: User | null = await fetch('/api/getCurrentUser')
@@ -74,8 +103,54 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
       console.error('Failed to update user info')
       return
     }
-    setIsEditMode(false)
+    setIsEditPointsMode(false)
     onRefreshUsers() // Refresh the user data
+  }
+
+  const handleSaveMinutesFilmModification = async (selectedUserIds: string[], modification: number, goodEffort: boolean, crewMin: boolean, screened: boolean, description: string) => {
+    //get the current user
+    const currentUser: User | null = await fetch('/api/getCurrentUser')
+      .then(res => res.ok ? res.json() : null)
+      .catch(err => {
+        console.error('Error fetching current user:', err)
+        return null
+      })
+    if (!currentUser) {
+      console.error('Failed to fetch current user')
+      return
+    }
+    const modifiedBy = currentUser.id
+    const response = await fetch('/api/createMinutesFilmLog', {
+      method: 'POST',
+      body: JSON.stringify({
+        userIds: selectedUserIds,
+        modification,
+        description,
+        modifiedBy,
+        crewMin,
+        screened,
+        goodEffort
+      })
+    })
+    if (!response.ok) {
+      console.error('Failed to create points log')
+      return
+    }
+    const newResponse = await fetch('/api/updateUserInfo', {
+      method: 'PUT',
+      body: JSON.stringify({
+        user_ids: selectedUserIds,
+        minutes_film_produced: modification,
+        modification: 'minutes_film_produced'
+      })
+    })
+    if (!newResponse.ok) {
+      console.error('Failed to update user info')
+      return
+    }
+    setIsEditMinutesFilmMode(false)
+    onRefreshUsers() // Refresh the user data
+
   }
 
   return (
@@ -120,15 +195,30 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
             <th className="border border-gray-300 px-3 py-2 text-left">
               <div className="flex items-center w-full">
                 <span>Points</span>
+                {
+                  isOfficer && (
+                    <span
+                      onClick={toggleEditPointsMode}
+                      className="ml-auto text-white text-xs font-medium rounded-full px-2 py-0.5 bg-[#b66cee] cursor-pointer select-none ml-2"
+                    >
+                      Edit
+                    </span>
+                  )
+                }
+              </div>
+            </th>
+            <th className="border border-gray-300 px-3 py-2 text-left">
+              <div className="flex items-center w-full">
+                  <span>Minutes of Film Produced</span>
+                  {isOfficer && (
                 <span
-                  onClick={toggleEditMode}
+                  onClick={toggleEditMinutesFilmMode}
                   className="ml-auto text-white text-xs font-medium rounded-full px-2 py-0.5 bg-[#b66cee] cursor-pointer select-none ml-2"
                 >
                   Edit
-                </span>
+                </span>)}
               </div>
             </th>
-            <th className="border border-gray-300 px-3 py-2 text-left">Minutes of Film Produced</th>
             <th className="border border-gray-300 px-3 py-2 text-left">Induction Status</th>
           </tr>
         </thead>
@@ -156,9 +246,15 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
         </tbody>
       </table>
       <PointsModificationModal
-        isOpen={isEditMode}
-        onClose={() => setIsEditMode(false)}
+        isOpen={isEditPointsMode}
+        onClose={() => setIsEditPointsMode(false)}
         onSave={(selectedUserIds: string[], modification: number, description: string) => handleSavePointsModification(selectedUserIds, modification, description)}
+        users={users}
+      />
+      <MinutesFilmProducedModal
+        isOpen={isEditMinutesFilmMode}
+        onClose={() => setIsEditMinutesFilmMode(false)}
+        onSave={(selectedUserIds: string[], modification: number, goodEffort: boolean, crewMin: boolean, screened: boolean, description: string) => handleSaveMinutesFilmModification(selectedUserIds, modification, goodEffort, crewMin, screened, description)}
         users={users}
       />
     </div>

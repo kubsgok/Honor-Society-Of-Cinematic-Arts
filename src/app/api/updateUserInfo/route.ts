@@ -9,7 +9,7 @@ export async function PUT(request: NextRequest) {
     
     const { user_ids, full_name, email, user_type, rank, induction_status, in_good_standing, points, minutes_film_produced, modification } = newPointsMod;
     
-    if (!user_ids || !points || !modification) {
+    if (!user_ids ||  !modification) {
       return NextResponse.json({ error: "Invalid data" }, { status: 400 });
     }
     
@@ -45,6 +45,33 @@ export async function PUT(request: NextRequest) {
       }
       
       return NextResponse.json({ message: "User points info updated successfully" }, { status: 200 });
+    }
+
+    if (modification === 'minutes_film_produced') {
+      // Update each user individually to add minutes of film produced
+      for (const userId of user_ids) {
+        // Get current user minutes of film produced
+        const { data: currentUser } = await supabase
+          .from('users')
+          .select('minutes_film_produced')
+          .eq('id', userId)
+          .single()
+        
+        if (currentUser) {
+          // Add the modification to current minutes of film produced
+          const newMinutes = (currentUser.minutes_film_produced || 0) + minutes_film_produced
+          
+          await supabase
+            .from('users')
+            .update({ minutes_film_produced: newMinutes })
+            .eq('id', userId)
+        
+        } else {
+          console.log(`API: No current user found for ID: ${userId}`)
+        }
+      }
+      
+      return NextResponse.json({ message: "User minutes of film produced info updated successfully" }, { status: 200 });
     }
 
     return NextResponse.json({ error: "Invalid user modification" }, { status: 400 });
