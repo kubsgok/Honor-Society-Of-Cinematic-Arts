@@ -5,9 +5,9 @@ export async function PUT(request: NextRequest) {
   try {
     const supabase = await createClient();
     
-    const newPointsMod = await request.json();
+    const newUserInfo = await request.json();
     
-    const { user_ids, user_id, full_name, email, user_type, rank, induction_status, in_good_standing, points, minutes_film_produced, modification } = newPointsMod;
+    const { user_ids, user_id, full_name, email, user_type, rank, induction_status, in_good_standing, points, minutes_film_produced, modification } = newUserInfo;
     
     if (!modification) {
       return NextResponse.json({ error: "Invalid data" }, { status: 400 });
@@ -106,6 +106,31 @@ export async function PUT(request: NextRequest) {
         console.log(`API: No current user found for ID: ${user_id}`)
       }
       return NextResponse.json({ message: "User in good standing info updated successfully" }, { status: 200 });
+    }
+
+    if (modification === "email") {
+      if (!email || !user_id) {
+        return NextResponse.json({ error: "Invalid data" }, { status: 400 });
+      }
+
+      // Get current user good standing
+      const { data: currentUser } = await supabase
+      .from('users')
+      .select('email')
+      .eq('id', user_id)
+      .single()
+
+      if (currentUser) {
+        await supabase
+          .from('users')
+          .update({ email: email })
+          .eq('id', user_id)
+      
+      } else {
+        console.log(`API: No current user found for ID: ${user_id}`)
+      }
+      return NextResponse.json({ message: "User email updated successfully" }, { status: 200 });
+
     }
 
     return NextResponse.json({ error: "Invalid user modification" }, { status: 400 });
