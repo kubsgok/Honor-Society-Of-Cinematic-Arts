@@ -1,11 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { BookOpen, School, Shield, ShieldOff, SquareCheck, Square } from 'lucide-react'
+import { BookOpen, School, Shield, ShieldOff, SquareCheck, Square, EllipsisVertical } from 'lucide-react'
 import { CopyPill } from './CopyPill'
 import { PointsModificationModal } from './PointsModificationModal'
 import { MinutesFilmProducedModal } from './MinutesFilmProducedModal'
 import { InGoodStandingModal } from './InGoodStandingModal'
+import { PointsLogTable } from './PointsLogTable'
+import { MinutesFilmLogTable } from './MinutesFilmLogTable'
 
 interface User {
   id: string
@@ -24,6 +26,24 @@ interface DashboardTableProps {
   onRefreshUsers: () => void
 }
 
+interface PointsLog {
+  created_at: string
+  modified_by: string
+  modification: number
+  description: string
+  role: string
+  member: string
+}
+
+interface MinutesFilmLog {
+  created_at: string
+  modified_by: string
+  modification: number
+  description: string
+  role: string
+  member: string
+}
+
 export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
   const [isEditPointsMode, setIsEditPointsMode] = useState(false)
   const [isEditMinutesFilmMode, setIsEditMinutesFilmMode] = useState(false)
@@ -33,6 +53,12 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
   const [isGoodStandingModalOpen, setIsGoodStandingModalOpen] = useState(false)
   const [pendingGoodStandingUserId, setPendingGoodStandingUserId] = useState<string | null>(null)
   const [pendingGoodStandingUserName, setPendingGoodStandingUserName] = useState<string>('')
+  const [openMenuUserId, setOpenMenuUserId] = useState<string | null>(null)
+  const [pointsLogData, setPointsLogData] = useState<PointsLog[]>([])
+  const [showPointsLog, setShowPointsLog] = useState(false)
+  const [minutesFilmLogData, setMinutesFilmLogData] = useState<MinutesFilmLog[]>([])
+  const [showMinutesFilmLog, setShowMinutesFilmLog] = useState(false)
+  const [userInfoClicked, setUserInfoClicked] = useState<string | null>(null)
 
   const toggleEditPointsMode = () => {
     setIsEditPointsMode(!isEditPointsMode)
@@ -73,6 +99,20 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
     }
     
     fetchCurrentUser()
+  }, [])
+
+  useEffect(() => {
+    const handleDocumentClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null
+      if (!target) {
+        setOpenMenuUserId(null)
+        return
+      }
+      const isInside = !!target.closest('[data-ellipsis-menu-container="true"]')
+      if (!isInside) setOpenMenuUserId(null)
+    }
+    document.addEventListener('click', handleDocumentClick)
+    return () => document.removeEventListener('click', handleDocumentClick)
   }, [])
 
   const handleSavePointsModification = async (selectedUserIds: string[], modification: number, description: string) => {
@@ -186,6 +226,38 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
     onRefreshUsers()
   }
 
+  const fetchPointsLog = async (userId: string, userName: string) => {
+    try {
+      const response = await fetch(`/api/fetchPointsLog?userId=${userId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setPointsLogData(data.pointsLogData || [])
+        setUserInfoClicked(userName)
+        setShowPointsLog(true)
+      } else {
+        console.error('Failed to fetch points log')
+      }
+    } catch (error) {
+      console.error('Error fetching points log:', error)
+    }
+  }
+
+  const fetchMinutesFilmLog = async (userId: string, userName: string) => {
+    try {
+      const response = await fetch(`/api/fetchMinutesFilmLog?userId=${userId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setMinutesFilmLogData(data.minutesFilmData || [])
+        setUserInfoClicked(userName)
+        setShowMinutesFilmLog(true)
+      } else {
+        console.error('Failed to fetch minutes of film log')
+      }
+    } catch (error) {
+      console.error('Error fetching minutes of film log:', error)
+    }
+  }
+
   return (
     <div className="overflow-x-auto">
       <div className="flex items-center">
@@ -270,7 +342,46 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
         <tbody>
           {users?.map((u) => (
             <tr key={u.id ?? u.email} className="odd:bg-white even:bg-gray-50">
-              <td className="border border-gray-200 px-3 py-2">{u.full_name ?? '-'}</td>
+              <td className="border border-gray-200 px-3 py-2">
+                <div className="relative flex items-center justify-between" data-ellipsis-menu-container="true" onClick={(e) => e.stopPropagation()}>
+                  <span>{u.full_name ?? '-'}</span>
+                  <div className="relative flex items-center">
+                    <EllipsisVertical
+                      className={`h-4 w-4 cursor-pointer ${showPointsLog || showMinutesFilmLog ? 'text-gray-300' : 'text-gray-500'}`}
+                      onClick={(e) => {
+                        if (showPointsLog || showMinutesFilmLog) return
+                        e.stopPropagation()
+                        setOpenMenuUserId(prev => (prev === u.id ? null : u.id))
+                      }}
+                    />
+                    {openMenuUserId === u.id && (
+                      <div
+                        className="absolute left-full top-1/2 -translate-y-1/2 ml-2 z-20 w-44 rounded-md border border-gray-200 bg-white shadow-md"
+                        role="menu"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {['Points log', 'Minutes of film log'].map((option) => (
+                          <div
+                            key={option}
+                            role="menuitem"
+                            className="px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                            onClick={() => {
+                              setOpenMenuUserId(null)
+                              if (option === 'Points log') {
+                                fetchPointsLog(u.id, u.full_name);
+                              } else if (option === 'Minutes of film log') {
+                                fetchMinutesFilmLog(u.id, u.full_name);
+                              }
+                            }}
+                          >
+                            {option}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </td>
               <td className="border border-gray-200 px-3 py-2">{u.email ?? '-'}</td>
               <td className="border border-gray-200 px-3 py-2">{u.rank ?? '-'}</td>
               <td className="border border-gray-200 px-3 py-2">{getPosition(u.user_type) ?? '-'}</td>
@@ -326,6 +437,34 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
         }}
         user_name={pendingGoodStandingUserName}
       />
+      {showPointsLog && (
+        <div className="mt-6">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold">Points Log for {userInfoClicked}</h3>
+            <button
+              onClick={() => setShowPointsLog(false)}
+              className="text-gray-500 hover:text-gray-700 cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+          <PointsLogTable entries={pointsLogData} />
+        </div>
+      )}
+      {showMinutesFilmLog && (
+        <div className="mt-6">
+          <div className="flex items-center justify-between mb-3">
+             <h3 className="text-lg font-semibold">Minutes of Film Log for {userInfoClicked}</h3>
+            <button
+              onClick={() => setShowMinutesFilmLog(false)}
+              className="text-gray-500 hover:text-gray-700 cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+          <MinutesFilmLogTable entries={minutesFilmLogData} />
+        </div>
+      )}
     </div>
   )
 }
