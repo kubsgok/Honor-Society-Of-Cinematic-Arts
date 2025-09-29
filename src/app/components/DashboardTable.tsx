@@ -6,6 +6,7 @@ import { CopyPill } from './CopyPill'
 import { PointsModificationModal } from './PointsModificationModal'
 import { MinutesFilmProducedModal } from './MinutesFilmProducedModal'
 import { InGoodStandingModal } from './InGoodStandingModal'
+import { RankModificationModal } from './RankModificationModal'
 import { PointsLogTable } from './PointsLogTable'
 import { MinutesFilmLogTable } from './MinutesFilmLogTable'
 
@@ -61,6 +62,7 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
   const [userInfoClicked, setUserInfoClicked] = useState<string | null>(null)
   const [showInductionFilter, setShowInductionFilter] = useState(false)
   const [inductionStatusFilter, setInductionStatusFilter] = useState<string | null>(null)
+  const [isEditRankMode, setIsEditRankMode] = useState(false)
 
   useEffect(() => {
     
@@ -84,6 +86,10 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
 
   const toggleEditInGoodStandingMode = () => {
     setIsEditInGoodStandingMode(!isEditInGoodStandingMode)
+  }
+
+  const toggleEditRankMode = () => {
+    setIsEditRankMode(!isEditRankMode)
   }
 
   const getPosition = (rank: string) => {
@@ -240,6 +246,23 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
     onRefreshUsers()
   }
 
+  const handleSaveRankModification = async (selectedUserIds: string[], newRank: string) => {
+    const response = await fetch('/api/updateUserInfo', {
+      method: 'PUT',
+      body: JSON.stringify({
+        user_ids: selectedUserIds,
+        rank: newRank,
+        modification: 'rank'
+      })
+    })
+    if (!response.ok) {
+      console.error('Failed to update rank')
+      return
+    }
+    setIsEditRankMode(false)
+    onRefreshUsers() // Refresh the user data
+  }
+
   const fetchPointsLog = async (userId: string, userName: string) => {
     try {
       const response = await fetch(`/api/fetchPointsLog?userId=${userId}`)
@@ -307,7 +330,17 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
               </div>
             </th>
             <th className="border border-gray-300 px-2 py-2 text-left">
-              Rank
+              <div className="flex items-center w-full">
+                <span>Rank</span>
+                {currentUser?.user_type === 'Chapter Director' && (
+                  <span
+                    onClick={toggleEditRankMode}
+                    className="ml-auto text-white text-xs font-medium rounded-full px-2 py-0.5 bg-[#b66cee] cursor-pointer select-none"
+                  >
+                    Edit
+                  </span>
+                )}
+              </div>
             </th>
             <th className="border border-gray-300 px-3 py-2 text-left">Position</th>
             <th className="border border-gray-300 px-3 py-2 text-left">
@@ -429,7 +462,7 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
                         role="menu"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        {['Points log', 'Minutes of film log'].map((option) => (
+                        {['Points Log', 'Minutes of Film Log'].map((option) => (
                           <div
                             key={option}
                             role="menuitem"
@@ -507,6 +540,12 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
           handleSaveGoodStandingModification(confirmed)
         }}
         user_name={pendingGoodStandingUserName}
+      />
+      <RankModificationModal
+        isOpen={isEditRankMode}
+        onClose={() => setIsEditRankMode(false)}
+        onSave={(selectedUserIds: string[], newRank: string) => handleSaveRankModification(selectedUserIds, newRank)}
+        users={users}
       />
       {showPointsLog && (
         <div className="mt-6">
