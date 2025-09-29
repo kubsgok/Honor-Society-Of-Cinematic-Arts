@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X, Check } from 'lucide-react'
+import { toast } from 'react-hot-toast'
 
 interface User {
   id: string
@@ -26,8 +27,6 @@ export function MinutesFilmProducedModal({ isOpen, onClose, onSave, users }: Min
   const [screened, setScreened] = useState(false)
   const [description, setDescription] = useState('')
 
-  if (!isOpen) return null
-
   const toggleMember = (userId: string) => {
     setSelectedMembers(prev => 
       prev.includes(userId) 
@@ -39,6 +38,24 @@ export function MinutesFilmProducedModal({ isOpen, onClose, onSave, users }: Min
   const toggleDropdown = () => {
     setIsDropdownOpen(!isDropdownOpen)
   }
+
+  const handleSave = () => {
+    if (!goodEffort || !crewMin || !screened) {
+      toast.error('All three film requirements must be checked.')
+      return
+    }
+    onSave(selectedMembers, modification, goodEffort, crewMin, screened, description)
+  }
+
+  useEffect(() => {
+    if (modType === 'subtract') {
+      setGoodEffort(false)
+      setCrewMin(false)
+      setScreened(false)
+    }
+  }, [modType])
+
+  if (!isOpen) return null
 
   return (
     <div className="fixed inset-0 backdrop-blur-[2px] flex items-center justify-center z-50">
@@ -214,7 +231,7 @@ export function MinutesFilmProducedModal({ isOpen, onClose, onSave, users }: Min
         {/* Save button */}
         <div className="flex justify-end mt-6">
           <button
-            onClick={() => onSave(selectedMembers, modification, goodEffort, crewMin, screened, description)}
+            onClick={handleSave}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
             Save Changes

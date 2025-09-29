@@ -1,0 +1,160 @@
+'use client'
+
+import { useState } from 'react'
+import { X, Check } from 'lucide-react'
+
+interface User {
+  id: string
+  full_name: string
+  email: string
+}
+
+interface RankModificationModalProps {
+  isOpen: boolean
+  onClose: () => void
+  onSave: (selectedUserIds: string[], newRank: string) => void
+  users: User[]
+}
+
+export function RankModificationModal({ isOpen, onClose, onSave, users }: RankModificationModalProps) {
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([])
+  const [isMemberDropdownOpen, setIsMemberDropdownOpen] = useState(false)
+  const [isRankDropdownOpen, setIsRankDropdownOpen] = useState(false)
+
+  const [newRank, setNewRank] = useState("")
+
+  if (!isOpen) return null
+
+  const toggleMember = (userId: string) => {
+    setSelectedMembers(prev => 
+      prev.includes(userId) 
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    )
+  }
+
+  const toggleDropdown = () => {
+    setIsMemberDropdownOpen(!isMemberDropdownOpen)
+  }
+
+  return (
+    <div className="fixed inset-0 backdrop-blur-[2px] flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 border-2 border-gray-400 shadow-lg">
+        {/* Header with X button */}
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold">Edit Rank</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 transition-colors"
+          >
+            <X className="h-6 w-6 text-gray-500 cursor-pointer hover:text-gray-700 transition-colors" />
+          </button>
+        </div>
+
+        {/* Form fields */}
+        <div className="space-y-4">
+          {/* Member(s) row */}
+          <div className="flex items-start">
+            <label className="w-24 text-sm font-medium text-gray-700 mt-2">Member(s)</label>
+            <div className="flex-1 ml-4 relative">
+              <button
+                type="button"
+                onClick={toggleDropdown}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left bg-white"
+              >
+                {selectedMembers.length === 0 ? (
+                  <span className="text-gray-500">Select member(s)</span>
+                ) : selectedMembers.length === users.length ? (
+                  <span>All Members ({users.length})</span>
+                ) : (
+                  <span>{selectedMembers.length} member(s) selected</span>
+                )}
+              </button>
+              
+              {isMemberDropdownOpen && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                  <div className="p-2">
+                    <label className="flex items-center p-2 hover:bg-gray-100 rounded cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedMembers.length === users.length}
+                        onChange={() => {
+                          if (selectedMembers.length === users.length) {
+                            setSelectedMembers([])
+                          } else {
+                            setSelectedMembers(users.map(u => u.id))
+                          }
+                        }}
+                        className="mr-2"
+                      />
+                      <span className="font-medium">All Members</span>
+                    </label>
+                    <div className="border-t border-gray-200 my-1"></div>
+                    {users.map((user) => (
+                      <label key={user.id} className="flex items-center p-2 hover:bg-gray-100 rounded cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedMembers.includes(user.id)}
+                          onChange={() => toggleMember(user.id)}
+                          className="mr-2"
+                        />
+                        <span>{user.full_name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* New Rank selection */}
+          <div className="flex items-start">
+            <label className="w-24 text-sm font-medium text-gray-700 mt-2">New Rank</label>
+            <div className="flex-1 ml-4 relative">
+              <button
+                type="button"
+                onClick={() => setIsRankDropdownOpen(!isRankDropdownOpen)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left bg-white"
+              >
+                {newRank === "" ? (
+                  <span className="text-gray-500">Select rank</span>
+                ) : (
+                  <span>{newRank}</span>
+                )}
+              </button>
+              
+              {isRankDropdownOpen && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                  <div className="p-2">
+                    {['Member', 'Member with Honors', 'Member with High Honors', '...'].map((rank) => (
+                      <div
+                        key={rank}
+                        className="p-2 hover:bg-gray-100 rounded cursor-pointer"
+                        onClick={() => {
+                          setNewRank(rank)
+                          setIsRankDropdownOpen(false)
+                        }}
+                      >
+                        {rank}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Save button */}
+        <div className="flex justify-end mt-6">
+          <button
+            onClick={() => onSave(selectedMembers, newRank)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          >
+            Save Changes
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}

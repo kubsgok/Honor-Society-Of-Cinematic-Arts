@@ -1,11 +1,14 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { BookOpen, School, Shield, ShieldOff, SquareCheck, Square } from 'lucide-react'
+import { BookOpen, School, Shield, ShieldOff, SquareCheck, Square, EllipsisVertical, Funnel, FunnelX } from 'lucide-react'
 import { CopyPill } from './CopyPill'
 import { PointsModificationModal } from './PointsModificationModal'
 import { MinutesFilmProducedModal } from './MinutesFilmProducedModal'
 import { InGoodStandingModal } from './InGoodStandingModal'
+import { RankModificationModal } from './RankModificationModal'
+import { PointsLogTable } from './PointsLogTable'
+import { MinutesFilmLogTable } from './MinutesFilmLogTable'
 
 interface User {
   id: string
@@ -24,6 +27,24 @@ interface DashboardTableProps {
   onRefreshUsers: () => void
 }
 
+interface PointsLog {
+  created_at: string
+  modified_by: string
+  modification: number
+  description: string
+  role: string
+  member: string
+}
+
+interface MinutesFilmLog {
+  created_at: string
+  modified_by: string
+  modification: number
+  description: string
+  role: string
+  member: string
+}
+
 export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
   const [isEditPointsMode, setIsEditPointsMode] = useState(false)
   const [isEditMinutesFilmMode, setIsEditMinutesFilmMode] = useState(false)
@@ -33,7 +54,28 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
   const [isGoodStandingModalOpen, setIsGoodStandingModalOpen] = useState(false)
   const [pendingGoodStandingUserId, setPendingGoodStandingUserId] = useState<string | null>(null)
   const [pendingGoodStandingUserName, setPendingGoodStandingUserName] = useState<string>('')
+  const [openMenuUserId, setOpenMenuUserId] = useState<string | null>(null)
+  const [pointsLogData, setPointsLogData] = useState<PointsLog[]>([])
+  const [showPointsLog, setShowPointsLog] = useState(false)
+  const [minutesFilmLogData, setMinutesFilmLogData] = useState<MinutesFilmLog[]>([])
+  const [showMinutesFilmLog, setShowMinutesFilmLog] = useState(false)
+  const [userInfoClicked, setUserInfoClicked] = useState<string | null>(null)
+  const [showInductionFilter, setShowInductionFilter] = useState(false)
+  const [inductionStatusFilter, setInductionStatusFilter] = useState<string | null>(null)
+  const [isEditRankMode, setIsEditRankMode] = useState(false)
 
+  useEffect(() => {
+    
+  }, [showInductionFilter])
+
+  // Get unique induction status values for filtering
+  const uniqueInductionStatuses = Array.from(new Set(users.map(u => u.induction_status).filter(Boolean)))
+
+  // Filter users based on induction status filter
+  const filteredUsers = inductionStatusFilter 
+    ? users.filter(u => u.induction_status === inductionStatusFilter)
+    : users
+  
   const toggleEditPointsMode = () => {
     setIsEditPointsMode(!isEditPointsMode)
   }
@@ -44,6 +86,10 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
 
   const toggleEditInGoodStandingMode = () => {
     setIsEditInGoodStandingMode(!isEditInGoodStandingMode)
+  }
+
+  const toggleEditRankMode = () => {
+    setIsEditRankMode(!isEditRankMode)
   }
 
   const getPosition = (rank: string) => {
@@ -73,6 +119,20 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
     }
     
     fetchCurrentUser()
+  }, [])
+
+  useEffect(() => {
+    const handleDocumentClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null
+      if (!target) {
+        setOpenMenuUserId(null)
+        return
+      }
+      const isInsideEllipsis = !!target.closest('[data-ellipsis-menu-container="true"]')
+      if (!isInsideEllipsis) setOpenMenuUserId(null)
+    }
+    document.addEventListener('click', handleDocumentClick)
+    return () => document.removeEventListener('click', handleDocumentClick)
   }, [])
 
   const handleSavePointsModification = async (selectedUserIds: string[], modification: number, description: string) => {
@@ -186,6 +246,55 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
     onRefreshUsers()
   }
 
+  const handleSaveRankModification = async (selectedUserIds: string[], newRank: string) => {
+    const response = await fetch('/api/updateUserInfo', {
+      method: 'PUT',
+      body: JSON.stringify({
+        user_ids: selectedUserIds,
+        rank: newRank,
+        modification: 'rank'
+      })
+    })
+    if (!response.ok) {
+      console.error('Failed to update rank')
+      return
+    }
+    setIsEditRankMode(false)
+    onRefreshUsers() // Refresh the user data
+  }
+
+  const fetchPointsLog = async (userId: string, userName: string) => {
+    try {
+      const response = await fetch(`/api/fetchPointsLog?userId=${userId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setPointsLogData(data.pointsLogData || [])
+        setUserInfoClicked(userName)
+        setShowPointsLog(true)
+      } else {
+        console.error('Failed to fetch points log')
+      }
+    } catch (error) {
+      console.error('Error fetching points log:', error)
+    }
+  }
+
+  const fetchMinutesFilmLog = async (userId: string, userName: string) => {
+    try {
+      const response = await fetch(`/api/fetchMinutesFilmLog?userId=${userId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setMinutesFilmLogData(data.minutesFilmData || [])
+        setUserInfoClicked(userName)
+        setShowMinutesFilmLog(true)
+      } else {
+        console.error('Failed to fetch minutes of film log')
+      }
+    } catch (error) {
+      console.error('Error fetching minutes of film log:', error)
+    }
+  }
+
   return (
     <div className="overflow-x-auto">
       <div className="flex items-center">
@@ -211,17 +320,27 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
             <th className="border border-gray-300 px-2 py-2 text-left">
               <div className="flex items-center w-full">
                 <span>Name</span>
-                <CopyPill className="ml-auto" names={users.map((u) => u.full_name)} />
+                <CopyPill className="ml-auto" names={filteredUsers.map((u) => u.full_name)} />
               </div>
             </th>
             <th className="border border-gray-300 px-2 py-2 text-left">
               <div className="flex items-center w-full">
                 <span>Email</span>
-                <CopyPill className="ml-auto" names={users.map((u) => u.email)}/>
+                <CopyPill className="ml-auto" names={filteredUsers.map((u) => u.email)}/>
               </div>
             </th>
             <th className="border border-gray-300 px-2 py-2 text-left">
-              Rank
+              <div className="flex items-center w-full">
+                <span>Rank</span>
+                {currentUser?.user_type === 'Chapter Director' && (
+                  <span
+                    onClick={toggleEditRankMode}
+                    className="ml-auto text-white text-xs font-medium rounded-full px-2 py-0.5 bg-[#b66cee] cursor-pointer select-none"
+                  >
+                    Edit
+                  </span>
+                )}
+              </div>
             </th>
             <th className="border border-gray-300 px-3 py-2 text-left">Position</th>
             <th className="border border-gray-300 px-3 py-2 text-left">
@@ -264,13 +383,107 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
                 </span>)}
               </div>
             </th>
-            <th className="border border-gray-300 px-3 py-2 text-left">Induction Status</th>
+            <th className="border border-gray-300 px-3 py-2 text-left">
+              <div className="flex items-center justify-between w-full">
+                <span>Induction Status</span>
+                <div className="relative">
+                  {inductionStatusFilter ? (
+                    <FunnelX
+                      className="h-4 w-4 cursor-pointer text-gray-500 hover:text-gray-700"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setInductionStatusFilter(null)
+                      }}
+                    />
+                  ) : (
+                    <Funnel
+                      className="h-4 w-4 cursor-pointer text-gray-500 hover:text-gray-700"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setShowInductionFilter(true)
+                      }}
+                    />
+                  )}
+                  {showInductionFilter && (
+                    <div
+                      className="absolute right-0 top-full mt-1 z-20 w-48 rounded-md border border-gray-200 bg-white shadow-md"
+                      role="menu"
+                    >
+                      <div
+                        role="menuitem"
+                        className="px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer border-b border-gray-100"
+                        onClick={() => {
+                          setInductionStatusFilter(null)
+                          setShowInductionFilter(false)
+                        }}
+                      >
+                        Show All
+                      </div>
+                      {uniqueInductionStatuses.map((status) => (
+                        <div
+                          key={status}
+                          role="menuitem"
+                          className={`px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer ${
+                            inductionStatusFilter === status ? 'bg-blue-50 text-blue-700' : ''
+                          }`}
+                          onClick={() => {
+                            setInductionStatusFilter(status)
+                            setShowInductionFilter(false)
+                          }}
+                        >
+                          {status}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </th>
           </tr>
         </thead>
         <tbody>
-          {users?.map((u) => (
+          {filteredUsers?.map((u) => (
             <tr key={u.id ?? u.email} className="odd:bg-white even:bg-gray-50">
-              <td className="border border-gray-200 px-3 py-2">{u.full_name ?? '-'}</td>
+              <td className="border border-gray-200 px-3 py-2">
+                <div className="relative flex items-center justify-between" data-ellipsis-menu-container="true" onClick={(e) => e.stopPropagation()}>
+                  <span>{u.full_name ?? '-'}</span>
+                  <div className="relative flex items-center">
+                    <EllipsisVertical
+                      className={`h-4 w-4 cursor-pointer ${showPointsLog || showMinutesFilmLog ? 'text-gray-300' : 'text-gray-500'}`}
+                      onClick={(e) => {
+                        if (showPointsLog || showMinutesFilmLog) return
+                        e.stopPropagation()
+                        setOpenMenuUserId(prev => (prev === u.id ? null : u.id))
+                      }}
+                    />
+                    {openMenuUserId === u.id && (
+                      <div
+                        className="absolute left-full top-1/2 -translate-y-1/2 ml-2 z-20 w-44 rounded-md border border-gray-200 bg-white shadow-md"
+                        role="menu"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {['Points Log', 'Minutes of Film Log'].map((option) => (
+                          <div
+                            key={option}
+                            role="menuitem"
+                            className="px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                            onClick={() => {
+                              setOpenMenuUserId(null)
+                              if (option === 'Points log') {
+                                fetchPointsLog(u.id, u.full_name);
+                              } else if (option === 'Minutes of film log') {
+                                fetchMinutesFilmLog(u.id, u.full_name);
+                              }
+                            }}
+                          >
+                            {option}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </td>
               <td className="border border-gray-200 px-3 py-2">{u.email ?? '-'}</td>
               <td className="border border-gray-200 px-3 py-2">{u.rank ?? '-'}</td>
               <td className="border border-gray-200 px-3 py-2">{getPosition(u.user_type) ?? '-'}</td>
@@ -299,9 +512,11 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
               <td className="border border-gray-200 px-3 py-2">{u.induction_status ?? '-'}</td>
             </tr>
           ))}
-          {users && users.length === 0 && (
+          {filteredUsers && filteredUsers.length === 0 && (
             <tr>
-              <td className="px-3 py-4 text-gray-500" colSpan={10}>No users found.</td>
+              <td className="px-3 py-4 text-gray-500" colSpan={10}>
+                {inductionStatusFilter ? `No users found with induction status: ${inductionStatusFilter}` : 'No users found.'}
+              </td>
             </tr>
           )}
         </tbody>
@@ -326,6 +541,40 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
         }}
         user_name={pendingGoodStandingUserName}
       />
+      <RankModificationModal
+        isOpen={isEditRankMode}
+        onClose={() => setIsEditRankMode(false)}
+        onSave={(selectedUserIds: string[], newRank: string) => handleSaveRankModification(selectedUserIds, newRank)}
+        users={users}
+      />
+      {showPointsLog && (
+        <div className="mt-6">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold">Points Log for {userInfoClicked}</h3>
+            <button
+              onClick={() => setShowPointsLog(false)}
+              className="text-gray-500 hover:text-gray-700 cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+          <PointsLogTable entries={pointsLogData} />
+        </div>
+      )}
+      {showMinutesFilmLog && (
+        <div className="mt-6">
+          <div className="flex items-center justify-between mb-3">
+             <h3 className="text-lg font-semibold">Minutes of Film Log for {userInfoClicked}</h3>
+            <button
+              onClick={() => setShowMinutesFilmLog(false)}
+              className="text-gray-500 hover:text-gray-700 cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+          <MinutesFilmLogTable entries={minutesFilmLogData} />
+        </div>
+      )}
     </div>
   )
 }
