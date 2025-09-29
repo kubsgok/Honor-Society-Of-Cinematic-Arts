@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { BookOpen, School, Shield, ShieldOff, SquareCheck, Square, EllipsisVertical } from 'lucide-react'
+import { BookOpen, School, Shield, ShieldOff, SquareCheck, Square, EllipsisVertical, Funnel, FunnelX } from 'lucide-react'
 import { CopyPill } from './CopyPill'
 import { PointsModificationModal } from './PointsModificationModal'
 import { MinutesFilmProducedModal } from './MinutesFilmProducedModal'
@@ -59,7 +59,21 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
   const [minutesFilmLogData, setMinutesFilmLogData] = useState<MinutesFilmLog[]>([])
   const [showMinutesFilmLog, setShowMinutesFilmLog] = useState(false)
   const [userInfoClicked, setUserInfoClicked] = useState<string | null>(null)
+  const [showInductionFilter, setShowInductionFilter] = useState(false)
+  const [inductionStatusFilter, setInductionStatusFilter] = useState<string | null>(null)
 
+  useEffect(() => {
+    
+  }, [showInductionFilter])
+
+  // Get unique induction status values for filtering
+  const uniqueInductionStatuses = Array.from(new Set(users.map(u => u.induction_status).filter(Boolean)))
+
+  // Filter users based on induction status filter
+  const filteredUsers = inductionStatusFilter 
+    ? users.filter(u => u.induction_status === inductionStatusFilter)
+    : users
+  
   const toggleEditPointsMode = () => {
     setIsEditPointsMode(!isEditPointsMode)
   }
@@ -108,8 +122,8 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
         setOpenMenuUserId(null)
         return
       }
-      const isInside = !!target.closest('[data-ellipsis-menu-container="true"]')
-      if (!isInside) setOpenMenuUserId(null)
+      const isInsideEllipsis = !!target.closest('[data-ellipsis-menu-container="true"]')
+      if (!isInsideEllipsis) setOpenMenuUserId(null)
     }
     document.addEventListener('click', handleDocumentClick)
     return () => document.removeEventListener('click', handleDocumentClick)
@@ -283,13 +297,13 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
             <th className="border border-gray-300 px-2 py-2 text-left">
               <div className="flex items-center w-full">
                 <span>Name</span>
-                <CopyPill className="ml-auto" names={users.map((u) => u.full_name)} />
+                <CopyPill className="ml-auto" names={filteredUsers.map((u) => u.full_name)} />
               </div>
             </th>
             <th className="border border-gray-300 px-2 py-2 text-left">
               <div className="flex items-center w-full">
                 <span>Email</span>
-                <CopyPill className="ml-auto" names={users.map((u) => u.email)}/>
+                <CopyPill className="ml-auto" names={filteredUsers.map((u) => u.email)}/>
               </div>
             </th>
             <th className="border border-gray-300 px-2 py-2 text-left">
@@ -336,11 +350,66 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
                 </span>)}
               </div>
             </th>
-            <th className="border border-gray-300 px-3 py-2 text-left">Induction Status</th>
+            <th className="border border-gray-300 px-3 py-2 text-left">
+              <div className="flex items-center justify-between w-full">
+                <span>Induction Status</span>
+                <div className="relative">
+                  {inductionStatusFilter ? (
+                    <FunnelX
+                      className="h-4 w-4 cursor-pointer text-gray-500 hover:text-gray-700"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setInductionStatusFilter(null)
+                      }}
+                    />
+                  ) : (
+                    <Funnel
+                      className="h-4 w-4 cursor-pointer text-gray-500 hover:text-gray-700"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setShowInductionFilter(true)
+                      }}
+                    />
+                  )}
+                  {showInductionFilter && (
+                    <div
+                      className="absolute right-0 top-full mt-1 z-20 w-48 rounded-md border border-gray-200 bg-white shadow-md"
+                      role="menu"
+                    >
+                      <div
+                        role="menuitem"
+                        className="px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer border-b border-gray-100"
+                        onClick={() => {
+                          setInductionStatusFilter(null)
+                          setShowInductionFilter(false)
+                        }}
+                      >
+                        Show All
+                      </div>
+                      {uniqueInductionStatuses.map((status) => (
+                        <div
+                          key={status}
+                          role="menuitem"
+                          className={`px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer ${
+                            inductionStatusFilter === status ? 'bg-blue-50 text-blue-700' : ''
+                          }`}
+                          onClick={() => {
+                            setInductionStatusFilter(status)
+                            setShowInductionFilter(false)
+                          }}
+                        >
+                          {status}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </th>
           </tr>
         </thead>
         <tbody>
-          {users?.map((u) => (
+          {filteredUsers?.map((u) => (
             <tr key={u.id ?? u.email} className="odd:bg-white even:bg-gray-50">
               <td className="border border-gray-200 px-3 py-2">
                 <div className="relative flex items-center justify-between" data-ellipsis-menu-container="true" onClick={(e) => e.stopPropagation()}>
@@ -410,9 +479,11 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
               <td className="border border-gray-200 px-3 py-2">{u.induction_status ?? '-'}</td>
             </tr>
           ))}
-          {users && users.length === 0 && (
+          {filteredUsers && filteredUsers.length === 0 && (
             <tr>
-              <td className="px-3 py-4 text-gray-500" colSpan={10}>No users found.</td>
+              <td className="px-3 py-4 text-gray-500" colSpan={10}>
+                {inductionStatusFilter ? `No users found with induction status: ${inductionStatusFilter}` : 'No users found.'}
+              </td>
             </tr>
           )}
         </tbody>
