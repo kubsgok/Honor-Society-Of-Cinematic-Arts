@@ -13,6 +13,15 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const error = useSearchParams().get("error");
 
+  const validatePassword = (password: string) => {
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSymbol = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+    const hasMinLength = password.length >= 8;
+    
+    return hasUpperCase && hasNumber && hasSymbol && hasMinLength;
+  };
+
   const handleLogin = async () => {
     if(!email || !(email.includes("@")) || email === "") {
       toast.error("Please enter a valid email");
@@ -20,6 +29,10 @@ export default function LoginPage() {
     }
     if (!password || password === "") {
       toast.error("Please enter a valid password");
+      return;
+    }
+    if (!validatePassword(password)) {
+      toast.error("Password must contain at least 8 characters, one uppercase letter, one number, and one special character");
       return;
     }
     await login(email, password);
@@ -34,7 +47,7 @@ export default function LoginPage() {
   }, [error, router]);
 
   const resetPassword = async () => {
-
+    router.push('/forgot-password');
   }
 
   return (
@@ -70,8 +83,13 @@ export default function LoginPage() {
             placeholder="Enter your password"
             className="placeholder:text-[#535151] p-2 border border-[#535151] rounded-md w-1/2"/>
         </div>
+        <div className="pl-10 pb-2 w-1/2">
+          <p className="text-gray-600 text-xs">
+            Password must contain: 8+ characters, one uppercase letter, one number, and one special character (!@#$%^&*)
+          </p>
+        </div>
         <span 
-        onClick={() => {console.log("manage forgot password")}} 
+        onClick={resetPassword} 
         className="text-[#520392] text-sm text-right block w-1/2 ml-5 cursor-pointer hover:underline">
           Forgot password?
         </span>
@@ -84,7 +102,7 @@ export default function LoginPage() {
         </div>
         <div className="pl-10 pb-2 w-1/2">
           <p className="text-black text-sm text-center">
-            Don't have an account? 
+            Don&apos;t have an account? 
             <span 
             onClick={() => router.push("/signup")}
             className="text-[#520392] text-sm text-center cursor-pointer hover:underline ml-1">
