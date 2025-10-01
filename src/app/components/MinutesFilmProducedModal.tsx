@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Check } from 'lucide-react'
+import { X } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 
 interface User {
@@ -20,7 +20,8 @@ interface MinutesFilmProducedModalProps {
 export function MinutesFilmProducedModal({ isOpen, onClose, onSave, users }: MinutesFilmProducedModalProps) {
   const [selectedMembers, setSelectedMembers] = useState<string[]>([])
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-  const [modification, setModification] = useState(0)
+  const [minutes, setMinutes] = useState(0)
+  const [seconds, setSeconds] = useState(0)
   const [modType, setModType] = useState<'add' | 'subtract' | ''>('')
   const [goodEffort, setGoodEffort] = useState(false)
   const [crewMin, setCrewMin] = useState(false)
@@ -44,6 +45,9 @@ export function MinutesFilmProducedModal({ isOpen, onClose, onSave, users }: Min
       toast.error('All three film requirements must be checked.')
       return
     }
+    // Convert minutes and seconds to total seconds, then apply sign based on modType
+    const totalSeconds = (minutes * 60) + seconds
+    const modification = modType === 'subtract' ? -totalSeconds : totalSeconds
     onSave(selectedMembers, modification, goodEffort, crewMin, screened, description)
   }
 
@@ -132,35 +136,43 @@ export function MinutesFilmProducedModal({ isOpen, onClose, onSave, users }: Min
             <label className="w-32 text-sm font-medium text-gray-700">Modification</label>
             <div className="flex-1 ml-4 flex gap-2">
               <select 
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-500"
-              onChange={(e) => {
-                const value = e.target.value as 'add' | 'subtract' | ''
-                setModType(value)
-                // Flip the sign of the current non-zero modification when type changes
-                if (modification !== 0) {
-                  const absVal = Math.abs(modification)
-                  setModification(value === 'subtract' ? -absVal : absVal)
-                }
-              }}>
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-500"
+                value={modType}
+                onChange={(e) => {
+                  const value = e.target.value as 'add' | 'subtract' | ''
+                  setModType(value)
+                }}>
                 <option value="">Type</option>
                 <option value="add">Add</option>
                 <option value="subtract">Subtract</option>
               </select>
-              <input
-                type="number"
-                placeholder="Minutes"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                onChange={(e) => {
-                  const n = Number(e.target.value)
-                  if (!Number.isFinite(n)) {
-                    setModification(0)
-                    return
-                  }
-                  const absVal = Math.abs(n)
-                  const signed = modType === 'subtract' ? -absVal : absVal
-                  setModification(signed)
-                }}
-              />
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  placeholder="Minutes"
+                  min="0"
+                  className="w-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={minutes || ''}
+                  onChange={(e) => {
+                    const n = Number(e.target.value)
+                    setMinutes(Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0)
+                  }}
+                />
+                <span className="text-sm text-gray-500">min</span>
+                <input
+                  type="number"
+                  placeholder="Seconds"
+                  min="0"
+                  max="59"
+                  className="w-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={seconds || ''}
+                  onChange={(e) => {
+                    const n = Number(e.target.value)
+                    setSeconds(Number.isFinite(n) && n >= 0 && n <= 59 ? Math.floor(n) : 0)
+                  }}
+                />
+                <span className="text-sm text-gray-500">sec</span>
+              </div>
             </div>
           </div>
 

@@ -21,6 +21,15 @@ export default function SignupPage() {
   const [gradYear, setGradYear] = useState<number>(new Date().getFullYear());
   const error = useSearchParams().get("error");
 
+  const validatePassword = (password: string) => {
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSymbol = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+    const hasMinLength = password.length >= 8;
+    
+    return hasUpperCase && hasNumber && hasSymbol && hasMinLength;
+  };
+
   const supabase = createClient();
 
   // TODO: replace with an endpoint that gets the schools from 'chapters' table in database
@@ -37,6 +46,10 @@ export default function SignupPage() {
     }
     if (!password || password === "") {
       toast.error("Please enter a valid password");
+      return;
+    }
+    if (!validatePassword(password)) {
+      toast.error("Password must contain at least 8 characters, one uppercase letter, one number, and one special character");
       return;
     }
     if (!dateOfBirth) {
@@ -155,6 +168,11 @@ export default function SignupPage() {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Enter your password"
             className="placeholder:text-[#535151] p-2 border border-[#535151] rounded-md w-1/2"/>
+        </div>
+        <div className="pl-10 pb-2 w-1/2">
+          <p className="text-gray-600 text-xs">
+            Password must contain: 8+ characters, one uppercase letter, one number, and one special character (!@#$%^&*)
+          </p>
         </div>
         <p className="text-black pl-10 pt-3 pb-2">Date of Birth</p>
         <div className="pl-10 pb-2">
