@@ -17,7 +17,7 @@ export async function login(email: string, password: string) {
   }
 
   revalidatePath('/', 'layout');
-  redirect('/');
+  redirect('/dashboard');
 }
 
 export async function signup(email: string, password: string) {
@@ -29,10 +29,20 @@ export async function signup(email: string, password: string) {
 
   if (error) {
     // Log the actual error to the terminal for debugging
-    console.error('Supabase signup error:', error.message || error.description || error);
+    console.error('Supabase signup error:', error.message || error);
     redirect(`/signup?error=${encodeURIComponent(error.message || 'Signup failed')}`);
   }
 
   revalidatePath('/', 'layout');
   redirect('/');
+}
+
+export async function logout() {
+  const supabase = await createClient();
+
+  const { error } = await supabase.auth.signOut('local');
+  if (error) {
+    console.error('Supabase logout error:', error.message || error);
+  }
+  redirect('/login');
 }

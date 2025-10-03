@@ -19,6 +19,7 @@ export default function SignupPage() {
   const [school, setSchool] = useState("");
   const [gradMonth, setGradMonth] = useState("");
   const [gradYear, setGradYear] = useState<number>(new Date().getFullYear());
+  const [chapters, setChapters] = useState<any>([]);
   const error = useSearchParams().get("error");
 
   const validatePassword = (password: string) => {
@@ -32,10 +33,26 @@ export default function SignupPage() {
 
   const supabase = createClient();
 
-  // TODO: replace with an endpoint that gets the schools from 'chapters' table in database
-  const dummySchools = ["Singapore American School", "International School Bangkok", "International School of Kuala Lumpur", "International School Manila", "Jakarta Intercultural School", "Taipei American School"];
+  useEffect(() => {
+    const fetchChapters = async () => {
+      const response = await fetch('/api/fetchChapters');
+      const data = await response.json();
+      if (!response.ok) {
+        console.error('Failed to fetch chapters')
+        return;
+      }
+      const chapters: string[] = [];
+      for (const chapter of data.chaptersData) {
+        chapters.push(chapter.school);
+      }
+      setChapters(chapters);
+    }
+    fetchChapters();
+  }, [])
 
   const handleSignup = async () => {
+    console.log('Chapters:', chapters);
+    console.log('School:', school);
     if (!firstName || !lastName) {
       toast.error("Please enter your first and last name");
       return;
@@ -69,19 +86,22 @@ export default function SignupPage() {
       return;
     }
     //TODO: add validation to ensure gradYear is valid
-    
-    //saving user info to temp_users table in supabase
-    try {
-      await supabase.from("temp_users").insert({
-        email: email,
-        full_name: `${firstName} ${lastName}`,
+    const response = await fetch('/api/createTempUser', {
+      method: 'POST',
+      body: JSON.stringify({
+        firstName,
+        lastName,
+        email,
         dob: dateOfBirth,
-        grad_month: gradMonth,
-        grad_year: gradYear
-      });
-    } catch (error) {
-      console.error("Error saving user info to temp_users table:", error);
-      return;
+        gradMonth,
+        gradYear,
+        school
+      })
+    })
+    console.log(response);
+    if (!response.ok) {
+      console.error('Failed to create temp user')
+      return
     }
 
     // creating a user in the authentication database
@@ -146,7 +166,7 @@ export default function SignupPage() {
             onChange={(e) => setSchool(e.target.value)}
             className="placeholder:text-[#535151] p-2 border border-[#535151] rounded-md w-1/2"
           >
-            {dummySchools.map((school) => (
+            {chapters.map((school: string) => (
               <option key={school} value={school}>{school}</option>
             ))}
           </select>
