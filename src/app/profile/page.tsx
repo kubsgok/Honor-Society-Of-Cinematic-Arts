@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { NavBar } from '../components/NavBar'
 import { months as MONTHS } from '@/lib/lists/months'
+import { logout } from '@/utils/login-signup/actions'
 
 type User = {
 	id: string
@@ -164,6 +165,15 @@ export default function ProfilePage() {
 				<div className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8 py-6">
 					<h2 className="text-2xl font-semibold mb-6">Edit Profile</h2>
 
+					<button
+						type="button"
+						className="rounded bg-purple-600 text-white px-3 py-2 text-sm font-medium hover:bg-purple-700 disabled:opacity-50"
+						onClick={async () => {
+							await logout();
+						}}
+					>
+						Logout
+					</button>
 					{error && <div className="mb-4 text-sm text-red-600">{error}</div>}
 					{success && <div className="mb-4 text-sm text-green-700">{success}</div>}
 

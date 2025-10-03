@@ -58,7 +58,8 @@ export default function LoginPage() {
         height={250}
         src="/images/hscaLogoAndTextTransparentBg.png" 
         alt="HSCA Banner" 
-        className="p-10 w-1/3"/>
+        className="p-10 w-1/3"
+        priority sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 600px"/>
         <h1 className="text-black text-4xl font-extrabold pl-10">
           Welcome!
         </h1>
@@ -82,11 +83,6 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Enter your password"
             className="placeholder:text-[#535151] p-2 border border-[#535151] rounded-md w-1/2"/>
-        </div>
-        <div className="pl-10 pb-2 w-1/2">
-          <p className="text-gray-600 text-xs">
-            Password must contain: 8+ characters, one uppercase letter, one number, and one special character (!@#$%^&*)
-          </p>
         </div>
         <span 
         onClick={resetPassword} 
