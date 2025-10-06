@@ -41,9 +41,29 @@ export function MinutesFilmProducedModal({ isOpen, onClose, onSave, users }: Min
   }
 
   const handleSave = () => {
-    if (!goodEffort || !crewMin || !screened) {
-      toast.error('All three film requirements must be checked.')
-      return
+    if (!selectedMembers.length) {
+      toast.error("Please select at least one member");
+      return;
+    }
+
+    if (!minutes && !seconds) {
+      toast.error("Please enter minutes or seconds");
+      return;
+    }
+
+    if (!modType) {
+      toast.error("Please select add or subtract");
+      return;
+    }
+
+    if (!description.trim()) {
+      toast.error("Please enter a description");
+      return;
+    }
+
+    if (modType === 'add' && (!goodEffort || !crewMin || !screened)) {
+      toast.error("All film requirements must be satisfied when adding film time");
+      return;
     }
     // Apply sign based on modType
     const finalMinutes = modType === 'subtract' ? -minutes : minutes

@@ -4,7 +4,8 @@ import { createClient } from "@/utils/supabase/server";
 interface MinutesFilmLog {
     created_at: Date
     modified_by: string
-    modification: number
+    modification_minutes: number
+    modification_seconds: number
     description: string
     role: string
     member: string
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest) {
          
          const { data } = await supabase
              .from('film_logs')
-             .select('created_at, modified_by, modification, description')
+             .select('created_at, modified_by, modification_minutes, modification_seconds, description')
              .eq('user_id', targetUserId);
          
          minutesFilmData = (data || []).map(log => ({

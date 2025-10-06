@@ -7,8 +7,8 @@ export async function POST(request: NextRequest) {
     const minutesFilmLogData = await request.json();
     const { userIds, modifiedBy, modification_minutes, modification_seconds, description, crewMin, screened, goodEffort } = minutesFilmLogData;
     
-    if (!userIds || !modifiedBy || !modification_minutes || !modification_seconds || !description || !crewMin || !screened || !goodEffort) {
-      return NextResponse.json({ error: "Invalid data" }, { status: 400 });
+if (!userIds || !modifiedBy || modification_minutes === undefined || modification_seconds === undefined || !description || crewMin === undefined || screened === undefined || goodEffort === undefined) {      
+  return NextResponse.json({ error: "Invalid data" }, { status: 400 });
     }
 
     for (const userId of userIds) {
