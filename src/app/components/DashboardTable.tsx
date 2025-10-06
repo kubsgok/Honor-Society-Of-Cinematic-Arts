@@ -19,8 +19,8 @@ interface User {
   induction_status: string
   in_good_standing: boolean
   points: number
-  minutes_film_produced: number
-  seconds_film_produced: number
+  minutes: number
+  seconds: number
 }
 
 interface DashboardTableProps {
@@ -515,12 +515,12 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
                     console.log('User film data:', {
                       id: u.id,
                       name: u.full_name,
-                      minutes: u.minutes_film_produced,
-                      seconds: u.seconds_film_produced,
-                      minutesType: typeof u.minutes_film_produced,
-                      secondsType: typeof u.seconds_film_produced
+                      minutes: u.minutes,
+                      seconds: u.seconds,
+                      minutesType: typeof u.minutes,
+                      secondsType: typeof u.seconds
                     });
-                    return `${(u.minutes_film_produced ?? 0)}m ${(u.seconds_film_produced ?? 0)}s`;
+                    return `${(u.minutes ?? 0)}m ${(u.seconds ?? 0)}s`;
                   })()}              </td>
               <td className="border border-gray-200 px-3 py-2">{u.induction_status ?? '-'}</td>
             </tr>
