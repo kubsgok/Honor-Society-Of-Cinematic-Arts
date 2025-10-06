@@ -7,7 +7,7 @@ export async function PUT(request: NextRequest) {
     
     const newUserInfo = await request.json();
     
-    const { user_ids, user_id, full_name, email, user_type, rank, induction_status, in_good_standing, points, minutes_film_produced, modification } = newUserInfo;
+    const { user_ids, user_id, full_name, email, user_type, rank, induction_status, in_good_standing, points, minutes_film_produced, seconds_film_produced, modification } = newUserInfo;
     
     if (!modification) {
       return NextResponse.json({ error: "Invalid data" }, { status: 400 });
@@ -58,22 +58,35 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ error: "Invalid data" }, { status: 400 });
       }
 
-      // Update each user individually to add minutes of film produced
+      // Update each user individually to add minutes and seconds of film produced
       for (const userId of user_ids) {
-        // Get current user minutes of film produced
+        // Get current user minutes and seconds of film produced
         const { data: currentUser } = await supabase
           .from('users')
-          .select('minutes_film_produced')
+          .select('minutes, seconds')
           .eq('id', userId)
           .single()
         
         if (currentUser) {
-          // Add the modification to current minutes of film produced
-          const newMinutes = (currentUser.minutes_film_produced || 0) + minutes_film_produced
+          // Add the modification to current minutes and seconds of film produced
+          const newMinutes = (currentUser.minutes || 0) + (minutes_film_produced || 0)
+          const newSeconds = (currentUser.seconds || 0) + (seconds_film_produced || 0)
+          
+          // Handle seconds overflow (convert to minutes)
+          let finalMinutes = newMinutes
+          let finalSeconds = newSeconds
+          
+          if (finalSeconds >= 60) {
+            finalMinutes += Math.floor(finalSeconds / 60)
+            finalSeconds = finalSeconds % 60
+          }
           
           await supabase
             .from('users')
-            .update({ minutes_film_produced: newMinutes })
+            .update({ 
+              minutes: finalMinutes,
+              seconds: finalSeconds
+            })
             .eq('id', userId)
         
         } else {
@@ -81,7 +94,7 @@ export async function PUT(request: NextRequest) {
         }
       }
       
-      return NextResponse.json({ message: "User minutes of film produced info updated successfully" }, { status: 200 });
+      return NextResponse.json({ message: "User film production time updated successfully" }, { status: 200 });
     }
 
     if (modification === 'in_good_standing') {

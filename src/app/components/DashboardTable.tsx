@@ -19,7 +19,8 @@ interface User {
   induction_status: string
   in_good_standing: boolean
   points: number
-  minutes_film_produced: number
+  minutes: number
+  seconds: number
 }
 
 interface DashboardTableProps {
@@ -176,7 +177,7 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
     onRefreshUsers() // Refresh the user data
   }
 
-  const handleSaveMinutesFilmModification = async (selectedUserIds: string[], modification: number, goodEffort: boolean, crewMin: boolean, screened: boolean, description: string) => {
+  const handleSaveMinutesFilmModification = async (selectedUserIds: string[], minutes: number, seconds: number, goodEffort: boolean, crewMin: boolean, screened: boolean, description: string) => {
     //get the current user
     const currentUser: User | null = await fetch('/api/getCurrentUser')
       .then(res => res.ok ? res.json() : null)
@@ -193,7 +194,8 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
       method: 'POST',
       body: JSON.stringify({
         userIds: selectedUserIds,
-        modification,
+        modification_minutes: minutes,
+        modification_seconds: seconds, // Log minutes for now, could be updated to log total seconds
         description,
         modifiedBy,
         crewMin,
@@ -209,7 +211,8 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
       method: 'PUT',
       body: JSON.stringify({
         user_ids: selectedUserIds,
-        minutes_film_produced: modification,
+        minutes_film_produced: minutes,
+        seconds_film_produced: seconds,
         modification: 'minutes_film_produced'
       })
     })
@@ -373,7 +376,7 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
             </th>
             <th className="border border-gray-300 px-3 py-2 text-left">
               <div className="flex items-center w-full">
-                  <span>Minutes of Film Produced</span>
+                  <span>Film Produced</span>
                   {isOfficer && (
                 <span
                   onClick={toggleEditMinutesFilmMode}
@@ -492,7 +495,7 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
                 <input
                   type="checkbox"
                   checked={u.in_good_standing}
-                  onChange={(e) => {
+                  onChange={() => {
                     setPendingGoodStandingUserId(u.id)
                     setPendingGoodStandingUserName(u.full_name || u.email)
                     setIsGoodStandingModalOpen(true)
@@ -508,7 +511,18 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
               <td className="border border-gray-200 px-3 py-2">
                 {u.points ?? 0}
               </td>
-              <td className="border border-gray-200 px-3 py-2">{u.minutes_film_produced ?? 0}</td>
+              <td className="border border-gray-200 px-3 py-2">
+                {(() => {
+                    console.log('User film data:', {
+                      id: u.id,
+                      name: u.full_name,
+                      minutes: u.minutes,
+                      seconds: u.seconds,
+                      minutesType: typeof u.minutes,
+                      secondsType: typeof u.seconds
+                    });
+                    return `${(u.minutes ?? 0)}m ${(u.seconds ?? 0)}s`;
+                  })()}              </td>
               <td className="border border-gray-200 px-3 py-2">{u.induction_status ?? '-'}</td>
             </tr>
           ))}
@@ -530,7 +544,7 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
       <MinutesFilmProducedModal
         isOpen={isEditMinutesFilmMode}
         onClose={() => setIsEditMinutesFilmMode(false)}
-        onSave={(selectedUserIds: string[], modification: number, goodEffort: boolean, crewMin: boolean, screened: boolean, description: string) => handleSaveMinutesFilmModification(selectedUserIds, modification, goodEffort, crewMin, screened, description)}
+        onSave={(selectedUserIds: string[], minutes: number, seconds: number, goodEffort: boolean, crewMin: boolean, screened: boolean, description: string) => handleSaveMinutesFilmModification(selectedUserIds, minutes, seconds, goodEffort, crewMin, screened, description)}
         users={users}
       />
       <InGoodStandingModal

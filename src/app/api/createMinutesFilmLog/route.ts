@@ -5,9 +5,9 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
     const minutesFilmLogData = await request.json();
-    const { userIds, modifiedBy, modification, description, crewMin, screened, goodEffort } = minutesFilmLogData;
+    const { userIds, modifiedBy, modification_minutes, modification_seconds, description, crewMin, screened, goodEffort } = minutesFilmLogData;
     
-    if (!userIds || !modifiedBy || !modification || !description || !crewMin || !screened || !goodEffort) {
+    if (!userIds || !modifiedBy || !modification_minutes || !modification_seconds || !description || !crewMin || !screened || !goodEffort) {
       return NextResponse.json({ error: "Invalid data" }, { status: 400 });
     }
 
@@ -15,7 +15,8 @@ export async function POST(request: NextRequest) {
     await supabase.from('film_logs').insert({
         user_id: userId,
         modified_by: modifiedBy,
-        modification: modification,
+        modification_minutes: modification_minutes,
+        modification_seconds: modification_seconds,
         description: description,
         crew_min: crewMin,
         screened: screened,
