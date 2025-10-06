@@ -472,9 +472,9 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
                             className="px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
                             onClick={() => {
                               setOpenMenuUserId(null)
-                              if (option === 'Points log') {
+                              if (option === 'Points Log') {
                                 fetchPointsLog(u.id, u.full_name);
-                              } else if (option === 'Minutes of film log') {
+                              } else if (option === 'Minutes of Film Log') {
                                 fetchMinutesFilmLog(u.id, u.full_name);
                               }
                             }}

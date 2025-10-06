@@ -6,7 +6,8 @@ interface MinutesFilmLogEntry {
   modified_by: string
   role: string
   member: string
-  modification: number
+  modification_minutes: number
+  modification_seconds: number
   description: string
 }
 
@@ -35,7 +36,7 @@ export function MinutesFilmLogTable({ entries }: MinutesFilmLogTableProps) {
               </td>
               <td className="border border-gray-200 px-3 py-2">{entry.modified_by}</td>
               <td className="border border-gray-200 px-3 py-2">{entry.role}</td>
-              <td className="border border-gray-200 px-3 py-2">{entry.modification}</td>
+              <td className="border border-gray-200 px-3 py-2">{entry.modification_minutes || 0}m {entry.modification_seconds || 0}s</td>
               <td className="border border-gray-200 px-3 py-2">{entry.description}</td>
             </tr>
           ))}
