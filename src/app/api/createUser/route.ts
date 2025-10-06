@@ -41,6 +41,8 @@ export async function POST(request: NextRequest) {
         chapter_id: chapterData.chapter_id,
         user_type: 'Associate',
         in_good_standing: true,
+        minutes_film_produced: 0,
+        seconds_film_produced: 0,
     })
 
     if (error) {

@@ -13,7 +13,7 @@ interface User {
 interface MinutesFilmProducedModalProps {
   isOpen: boolean
   onClose: () => void
-  onSave: (selectedUserIds: string[], modification: number, goodEffort: boolean, crewMin: boolean, screened: boolean, description: string) => void
+  onSave: (selectedUserIds: string[], minutes: number, seconds: number, goodEffort: boolean, crewMin: boolean, screened: boolean, description: string) => void
   users: User[]
 }
 
@@ -45,10 +45,10 @@ export function MinutesFilmProducedModal({ isOpen, onClose, onSave, users }: Min
       toast.error('All three film requirements must be checked.')
       return
     }
-    // Convert minutes and seconds to total seconds, then apply sign based on modType
-    const totalSeconds = (minutes * 60) + seconds
-    const modification = modType === 'subtract' ? -totalSeconds : totalSeconds
-    onSave(selectedMembers, modification, goodEffort, crewMin, screened, description)
+    // Apply sign based on modType
+    const finalMinutes = modType === 'subtract' ? -minutes : minutes
+    const finalSeconds = modType === 'subtract' ? -seconds : seconds
+    onSave(selectedMembers, finalMinutes, finalSeconds, goodEffort, crewMin, screened, description)
   }
 
   useEffect(() => {
