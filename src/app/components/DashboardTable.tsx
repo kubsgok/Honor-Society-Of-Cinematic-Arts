@@ -194,7 +194,8 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
       method: 'POST',
       body: JSON.stringify({
         userIds: selectedUserIds,
-        modification: minutes, // Log minutes for now, could be updated to log total seconds
+        modification_minutes: minutes,
+        modification_seconds: seconds, // Log minutes for now, could be updated to log total seconds
         description,
         modifiedBy,
         crewMin,

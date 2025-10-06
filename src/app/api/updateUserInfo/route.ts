@@ -63,14 +63,14 @@ export async function PUT(request: NextRequest) {
         // Get current user minutes and seconds of film produced
         const { data: currentUser } = await supabase
           .from('users')
-          .select('minutes_film_produced, seconds_film_produced')
+          .select('minutes, seconds')
           .eq('id', userId)
           .single()
         
         if (currentUser) {
           // Add the modification to current minutes and seconds of film produced
-          const newMinutes = (currentUser.minutes_film_produced || 0) + (minutes_film_produced || 0)
-          const newSeconds = (currentUser.seconds_film_produced || 0) + (seconds_film_produced || 0)
+          const newMinutes = (currentUser.minutes || 0) + (minutes_film_produced || 0)
+          const newSeconds = (currentUser.seconds || 0) + (seconds_film_produced || 0)
           
           // Handle seconds overflow (convert to minutes)
           let finalMinutes = newMinutes
@@ -84,8 +84,8 @@ export async function PUT(request: NextRequest) {
           await supabase
             .from('users')
             .update({ 
-              minutes_film_produced: finalMinutes,
-              seconds_film_produced: finalSeconds
+              minutes: finalMinutes,
+              seconds: finalSeconds
             })
             .eq('id', userId)
         
