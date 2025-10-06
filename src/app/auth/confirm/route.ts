@@ -38,18 +38,40 @@ export async function GET(request: NextRequest) {
             redirect(`/error?msg=${encodeURIComponent('Could not find temp user record.')}`);
           }
           if (tempUser) {
+            console.log("Found temp user:", tempUser);
+            
+            // Find the chapter for this school
+            const { data: chapterData, error: chapterError } = await supabase
+              .from('chapters')
+              .select('*')
+              .eq('school', tempUser.school)
+              .single();
+
+            if (chapterError || !chapterData) {
+              console.error('Error finding chapter for school:', tempUser.school, chapterError);
+              redirect(`/error?msg=${encodeURIComponent(`Could not find chapter for school: ${tempUser.school}`)}`);
+            }
+
+            console.log("Found chapter:", chapterData);
+
             // Insert into users table
             const { error: insertError } = await supabase.from("users").insert({
               email: tempUser.email,
               full_name: tempUser.full_name,
               dob: tempUser.dob,
               grad_month: tempUser.grad_month,
-              grad_year: tempUser.grad_year
+              grad_year: tempUser.grad_year,
+              chapter_id: chapterData.chapter_id,
+              user_type: 'Associate',
+              in_good_standing: true
             });
+            
             if (insertError) {
               console.error("Error inserting into users table:", insertError);
-              redirect(`/error?msg=${encodeURIComponent('Could not insert user into users table.')}`);
+              redirect(`/error?msg=${encodeURIComponent(`Could not insert user into users table: ${insertError.message}`)}`);
             }
+            
+            console.log("Successfully inserted user into users table");
             // Delete the temp user record
             const { error: deleteError } = await supabase.from("temp_users").delete().eq("email", user.email);
             if (deleteError) {
@@ -66,7 +88,10 @@ export async function GET(request: NextRequest) {
         }
       } catch (error) {
         console.error("Error during user confirmation:", error);
-        redirect(`/error?msg=${encodeURIComponent('Unexpected error during user confirmation.')}`);
+        console.error("Error name:", error?.name);
+        console.error("Error message:", error?.message);
+        console.error("Error stack:", error?.stack);
+        redirect(`/error?msg=${encodeURIComponent(`Unexpected error during user confirmation: ${error?.message || 'Unknown error'}`)}`);
       }
 
       // redirect user to specified redirect URL or root of app
