@@ -4,128 +4,90 @@ import { useState, useEffect } from 'react'
 import { NavBar } from '../components/NavBar'
 import { Mail, Calendar, CheckCircle, X } from 'lucide-react'
 
-interface PendingUser {
-  id: string
-  full_name: string
-  email: string
-  requested_chapter: string
+interface PendingChapter {
   chapter_id: string
-  user_type: 'student' | 'staff'
-  grad_year: number
+  director_id: string
+  director_full_name?: string
+  director_email?: string
+  school: string
+  first_month_school: string
   grad_month: string
-  submitted_at: Date
-  status: 'pending' | 'approved' | 'rejected'
+  submitted_at?: Date
+  status?: 'pending' | 'approved'
 }
 
 export default function InboxPage() {
-  const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([])
-  const [selectedUser, setSelectedUser] = useState<PendingUser | null>(null)
+  const [chapters, setChapters] = useState<PendingChapter[]>([]);
+  const [selectedChapter, setSelectedChapter] = useState<PendingChapter | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [loading, setLoading] = useState(true)
 
+  const fetchChapters = async () => {
+    const response = await fetch('/api/fetchChapters');
+    const data = await response.json();
+    console.log("the raw data", data.chaptersData);
+    if (!response.ok) {
+      console.error('Failed to fetch chapters')
+      return;
+    }
+    const mappedChapters: PendingChapter[] = (data.chaptersData || []).map((chapter: any) => ({
+      chapter_id: String(chapter.chapter_number ?? chapter.chapter_id ?? ''),
+      director_id: chapter.director_id ?? '',
+      school: chapter.school ?? '',
+      first_month_school: chapter.first_month_school ?? 'N/A',
+      grad_month: chapter.grad_month ?? 'N/A',
+      submitted_at: chapter.created_at ? new Date(chapter.created_at) : undefined,
+      status: chapter.official ? 'approved' : 'pending',
+    }));
+    console.log("After fetching chapters", mappedChapters);
+    setChapters(mappedChapters);
+  }
+
+  const updateChapterDirectors = async () => {
+    console.log('updateChapterDirectors called');
+    console.log("chapters", chapters);
+    for (const chapter of chapters) {
+      console.log("chapter", chapter);
+      const response = await fetch('/api/fetchUsers');
+      // console.log("response", response);
+      const data = await response.json();
+      console.log("the raw data in chapter directors", data);
+      const director = data.filter((user: any) => user.id === chapter.director_id);
+      console.log("director", director);
+      chapter.director_full_name = director.full_name;
+      chapter.director_email = director.email;
+    }
+    console.log("After updating chapter directors", chapters);
+  }
+  
   useEffect(() => {
-    // Mock data for pending user approvals
-    const mockPendingUsers: PendingUser[] = [
-      {
-        id: '1',
-        full_name: 'Sarah Mitchell',
-        email: 'sarah.mitchell@sas.edu',
-        requested_chapter: 'Singapore American School',
-        chapter_id: '1',
-        user_type: 'student',
-        grad_year: 2026,
-        grad_month: 'June',
-        submitted_at: new Date('2025-09-28T14:30:00'),
-        status: 'pending'
-      },
-      {
-        id: '2',
-        full_name: 'Marcus Thompson',
-        email: 'marcus.t@isb.ac.th',
-        requested_chapter: 'International School Bangkok',
-        chapter_id: '2',
-        user_type: 'student',
-        grad_year: 2025,
-        grad_month: 'May',
-        submitted_at: new Date('2025-09-27T09:15:00'),
-        status: 'pending'
-      },
-      {
-        id: '3',
-        full_name: 'Emma Rodriguez',
-        email: 'emma.rodriguez@tas.edu.tw',
-        requested_chapter: 'Taipei American School',
-        chapter_id: '3',
-        user_type: 'student',
-        grad_year: 2026,
-        grad_month: 'June',
-        submitted_at: new Date('2025-09-26T16:45:00'),
-        status: 'pending'
-      },
-      {
-        id: '4',
-        full_name: 'Alex Chen',
-        email: 'alex.chen@sas.edu',
-        requested_chapter: 'Singapore American School',
-        chapter_id: '1',
-        user_type: 'student',
-        grad_year: 2025,
-        grad_month: 'December',
-        submitted_at: new Date('2025-09-25T11:20:00'),
-        status: 'pending'
-      },
-      {
-        id: '5',
-        full_name: 'Jessica Park',
-        email: 'j.park@isb.ac.th',
-        requested_chapter: 'International School Bangkok',
-        chapter_id: '2',
-        user_type: 'student',
-        grad_year: 2027,
-        grad_month: 'May',
-        submitted_at: new Date('2025-09-24T13:10:00'),
-        status: 'pending'
-      }
-    ]
+    fetchChapters();
+    updateChapterDirectors();
+    setLoading(false);
+  }, [selectedChapter])
 
-    setPendingUsers(mockPendingUsers)
-    setLoading(false)
-  }, [])
-
-  const openUserModal = (user: PendingUser) => {
-    setSelectedUser(user)
+  const openChapterModal = (chapter: PendingChapter) => {
+    setSelectedChapter(chapter)
     setShowModal(true)
   }
 
   const closeModal = () => {
-    setSelectedUser(null)
+    setSelectedChapter(null)
     setShowModal(false)
   }
 
-  const approveUser = (userId: string) => {
-    setPendingUsers(prev => 
-      prev.map(user => 
-        user.id === userId 
-          ? { ...user, status: 'approved' }
-          : user
-      )
-    )
-    closeModal()
+  const approveChapter = (chapterId: string) => {
+    //TODO: make the update chapter api call
   }
 
-  const rejectUser = (userId: string) => {
-    setPendingUsers(prev => 
-      prev.map(user => 
-        user.id === userId 
-          ? { ...user, status: 'rejected' }
-          : user
-      )
-    )
-    closeModal()
+  const rejectChapter = (chapterId: string) => {
+    //TODO: make the delete chapter api call
   }
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', { 
+  const formatDate = (dateLike: Date | string) => {
+    const d = typeof dateLike === 'string' ? new Date(dateLike) : dateLike;
+    if (Number.isNaN(d.getTime())) return 'Invalid date';
+    return d.toLocaleDateString('en-US', { 
       year: 'numeric', 
       month: 'short', 
       day: 'numeric',
@@ -134,7 +96,7 @@ export default function InboxPage() {
     })
   }
 
-  const pendingApplications = pendingUsers.filter(user => user.status === 'pending')
+  const pendingApplications = chapters.filter((chapter: PendingChapter) => chapter.status === 'pending')
 
   if (loading) {
     return (
@@ -156,7 +118,7 @@ export default function InboxPage() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
           <div className="p-6 border-b border-gray-200">
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Pending Applications</h1>
-            <p className="text-gray-600">Review and approve new member applications</p>
+            <p className="text-gray-600">Review and approve new chapter applications</p>
           </div>
 
           {/* Applications List */}
@@ -178,29 +140,33 @@ export default function InboxPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {pendingApplications.map((user) => (
-                  <div key={user.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
+                {pendingApplications.map((chapter: PendingChapter) => (
+                  <div key={chapter.chapter_id} className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-semibold text-gray-900">{user.full_name}</h3>
-                          <span className="text-sm text-gray-500">{user.email}</span>
+                          <h3 className="font-semibold text-gray-900">{chapter.school}</h3>
+                          <span className="text-sm text-gray-600">{chapter.first_month_school} - {chapter.grad_month}</span>
                         </div>
                         
                         <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
-                          <span className="font-medium">{user.requested_chapter}</span>
-                          <span>{user.grad_month} {user.grad_year}</span>
+                          <span className="font-medium">{chapter.director_full_name}</span>
+                          <span className="text-sm text-gray-500">{chapter.director_email}</span>
                         </div>
 
                         <div className="flex items-center text-sm text-gray-500">
                           <Calendar className="h-4 w-4 mr-1" />
-                          Applied {formatDate(user.submitted_at)}
+                          {chapter.submitted_at ? (
+                            <>Applied {formatDate(chapter.submitted_at)}</>
+                          ) : (
+                            <>Submission date not available</>
+                          )}
                         </div>
                       </div>
 
                       <div className="flex items-center gap-2 ml-4">
                         <button
-                          onClick={() => openUserModal(user)}
+                          onClick={() => openChapterModal(chapter)}
                           className="px-4 py-2 text-sm bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
                         >
                           Review Application
@@ -216,43 +182,43 @@ export default function InboxPage() {
       </div>
 
       {/* Approval Modal */}
-      {showModal && selectedUser && (
+      {showModal && selectedChapter && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
             <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Review Application</h2>
+              <h2 className="text-xl font-semibold text-gray-900">Review Chapter Application</h2>
             </div>
             
             <div className="p-6">
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Name</label>
-                  <p className="text-gray-900">{selectedUser.full_name}</p>
+                  <label className="text-sm font-medium text-gray-700">School</label>
+                  <p className="text-gray-900">{selectedChapter.school}</p>
                 </div>
                 
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Email</label>
-                  <p className="text-gray-900">{selectedUser.email}</p>
+                  <label className="text-sm font-medium text-gray-700">Director Name</label>
+                  <p className="text-gray-900">{selectedChapter.director_full_name}</p>
                 </div>
                 
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Chapter</label>
-                  <p className="text-gray-900">{selectedUser.requested_chapter}</p>
+                  <label className="text-sm font-medium text-gray-700">Director Email</label>
+                  <p className="text-gray-900">{selectedChapter.director_email}</p>
                 </div>
                 
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Graduation</label>
-                  <p className="text-gray-900">{selectedUser.grad_month} {selectedUser.grad_year}</p>
+                  <label className="text-sm font-medium text-gray-700">First Month of School</label>
+                  <p className="text-gray-900">{selectedChapter.first_month_school}</p>
                 </div>
                 
                 <div>
-                  <label className="text-sm font-medium text-gray-700">User Type</label>
-                  <p className="text-gray-900 capitalize">{selectedUser.user_type}</p>
+                  <label className="text-sm font-medium text-gray-700">Graduation Month</label>
+                  <p className="text-gray-900 capitalize">{selectedChapter.grad_month}</p>
                 </div>
                 
                 <div>
                   <label className="text-sm font-medium text-gray-700">Applied On</label>
-                  <p className="text-gray-900">{formatDate(selectedUser.submitted_at)}</p>
+                  <p className="text-gray-900">{selectedChapter.submitted_at ? formatDate(selectedChapter.submitted_at) : 'Submission date not available'}</p>
                 </div>
               </div>
             </div>
@@ -265,14 +231,14 @@ export default function InboxPage() {
                 Cancel
               </button>
               <button
-                onClick={() => rejectUser(selectedUser.id)}
+                onClick={() => rejectChapter(selectedChapter.chapter_id)}
                 className="px-4 py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center gap-1"
               >
                 <X size={16} />
                 Reject
               </button>
               <button
-                onClick={() => approveUser(selectedUser.id)}
+                onClick={() => approveChapter(selectedChapter.chapter_id)}
                 className="px-4 py-2 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center gap-1"
               >
                 <CheckCircle size={16} />

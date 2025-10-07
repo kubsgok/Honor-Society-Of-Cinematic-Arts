@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
         
          const { data, error } = await supabase
              .from('chapters')
-             .select('chapter_number, school, director_id')
+             .select('chapter_number, school, director_id, first_month_school, grad_month, created_at')
          
         if (error) {
             console.error("Error fetching chapters: ", error);
