@@ -31,14 +31,14 @@ export default function InboxPage() {
     const data = await res.json()
     if (!res.ok) throw new Error('Failed to fetch chapters')
     return (data.chaptersData || []).map((chapter: any) => ({
-      chapter_id: String(chapter.chapter_number ?? chapter.chapter_id ?? ''),
-      director_id: chapter.director_id ?? '',
+      chapter_id: chapter.chapter_id,
+      director_id: chapter.director_id,
       school: chapter.school ?? '',
       first_month_school: chapter.first_month_school ?? 'N/A',
       grad_month: chapter.grad_month ?? 'N/A',
       submitted_at: chapter.created_at ? new Date(chapter.created_at) : undefined,
       status: chapter.official ? 'approved' : 'pending',
-      number: chapter.chapter_number ?? 0,
+      chapter_number: chapter.chapter_number,
       address: chapter.address ?? 'N/A',
       country: chapter.country ?? 'N/A',
       state: chapter.state ?? 'N/A',
@@ -53,29 +53,32 @@ export default function InboxPage() {
     return new Map(list.map(u => [u.id, u]))
   }
 
+  async function loadChapters() {
+    try {
+      setLoading(true)
+      const [chaptersRaw, usersMap] = await Promise.all([
+        fetchChapters(),
+        fetchUsersMap(),
+      ])
+      const hydrated = chaptersRaw.map(c => {
+        const u = usersMap.get(c.director_id)
+        return {
+          ...c,
+          director_full_name: u?.full_name ?? 'Unknown Director',
+          director_email: u?.email ?? '',
+        }
+      })
+      setChapters(hydrated)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+
   useEffect(() => {
-    (async () => {
-      try {
-        setLoading(true)
-        const [chaptersRaw, usersMap] = await Promise.all([
-          fetchChapters(),
-          fetchUsersMap(),
-        ])
-        const hydrated = chaptersRaw.map(c => {
-          const u = usersMap.get(c.director_id)
-          return {
-            ...c,
-            director_full_name: u?.full_name ?? 'Unknown Director',
-            director_email: u?.email ?? '',
-          }
-        })
-        setChapters(hydrated)
-      } catch (e) {
-        console.error(e)
-      } finally {
-        setLoading(false)
-      }
-    })()
+    loadChapters()
   }, []) // run once on mount
 
   const openChapterModal = (chapter: PendingChapter) => {
@@ -88,8 +91,34 @@ export default function InboxPage() {
     setShowModal(false)
   }
 
-  const approveChapter = (chapterId: string) => { /* TODO */ }
-  const rejectChapter = (chapterId: string) => { /* TODO */ }
+  const approveChapter = async (chapterId: string) => {
+    const res = await fetch('/api/updateChapter', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chapter_id: chapterId, official: true })
+     })
+     console.log(res);
+     if (!res.ok) {
+      console.error('Failed to approve chapter')
+      return
+     }
+     closeModal()
+     await loadChapters()
+  }
+  
+  const rejectChapter = async (chapterId: string) => {
+    const res = await fetch('/api/updateChapter', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chapter_id: chapterId, rejected: true })
+     })
+     if (!res.ok) {
+      console.error('Failed to reject chapter')
+      return
+     }
+     closeModal()
+     await loadChapters()
+  }
 
   const formatDate = (dateLike: Date | string) => {
     const d = typeof dateLike === 'string' ? new Date(dateLike) : dateLike
@@ -101,8 +130,6 @@ export default function InboxPage() {
   }
 
   const pendingApplications = chapters.filter(c => c.status === 'pending')
-
-  // ...rest of your JSX unchanged...
 
   if (loading) {
     return (

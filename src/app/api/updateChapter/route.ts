@@ -9,6 +9,7 @@ export async function PUT(request: NextRequest) {
     const {
         chapter_id,
         official,
+        rejected,
     } = await request.json()
 
     // Require auth
@@ -21,18 +22,18 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
-    if (!chapter_id || !official) {
+    if (!chapter_id) {
       return NextResponse.json({ error: 'Invalid data' }, { status: 400 })
     }
 
     // Build update object with only allowed fields
     type UpdateShape = {
-      chapter_id?: string,
       official?: boolean,
+      rejected?: boolean,
     }
     const update: UpdateShape = {}
-    if (typeof chapter_id === 'string') update.chapter_id = chapter_id
     if (typeof official === 'boolean') update.official = official
+    if (typeof rejected === 'boolean') update.rejected = rejected
 
     if (Object.keys(update).length === 0) {
       return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
