@@ -13,24 +13,24 @@ interface PendingChapter {
   first_month_school: string
   grad_month: string
   submitted_at?: Date
+  number: number
+  address: string
+  country: string
+  state?: string
   status?: 'pending' | 'approved'
 }
 
 export default function InboxPage() {
-  const [chapters, setChapters] = useState<PendingChapter[]>([]);
+  const [chapters, setChapters] = useState<PendingChapter[]>([])
   const [selectedChapter, setSelectedChapter] = useState<PendingChapter | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  const fetchChapters = async () => {
-    const response = await fetch('/api/fetchChapters');
-    const data = await response.json();
-    console.log("the raw data", data.chaptersData);
-    if (!response.ok) {
-      console.error('Failed to fetch chapters')
-      return;
-    }
-    const mappedChapters: PendingChapter[] = (data.chaptersData || []).map((chapter: any) => ({
+  async function fetchChapters(): Promise<PendingChapter[]> {
+    const res = await fetch('/api/fetchChapters')
+    const data = await res.json()
+    if (!res.ok) throw new Error('Failed to fetch chapters')
+    return (data.chaptersData || []).map((chapter: any) => ({
       chapter_id: String(chapter.chapter_number ?? chapter.chapter_id ?? ''),
       director_id: chapter.director_id ?? '',
       school: chapter.school ?? '',
@@ -38,33 +38,45 @@ export default function InboxPage() {
       grad_month: chapter.grad_month ?? 'N/A',
       submitted_at: chapter.created_at ? new Date(chapter.created_at) : undefined,
       status: chapter.official ? 'approved' : 'pending',
-    }));
-    console.log("After fetching chapters", mappedChapters);
-    setChapters(mappedChapters);
+      number: chapter.chapter_number ?? 0,
+      address: chapter.address ?? 'N/A',
+      country: chapter.country ?? 'N/A',
+      state: chapter.state ?? 'N/A',
+    }))
   }
 
-  const updateChapterDirectors = async () => {
-    console.log('updateChapterDirectors called');
-    console.log("chapters", chapters);
-    for (const chapter of chapters) {
-      console.log("chapter", chapter);
-      const response = await fetch('/api/fetchUsers');
-      // console.log("response", response);
-      const data = await response.json();
-      console.log("the raw data in chapter directors", data);
-      const director = data.filter((user: any) => user.id === chapter.director_id);
-      console.log("director", director);
-      chapter.director_full_name = director.full_name;
-      chapter.director_email = director.email;
-    }
-    console.log("After updating chapter directors", chapters);
+  async function fetchUsersMap(): Promise<Map<string, any>> {
+    const res = await fetch('/api/fetchUsers')
+    const users = await res.json()
+    // adjust if your API returns { users: [...] }
+    const list: any[] = Array.isArray(users) ? users : users.users ?? []
+    return new Map(list.map(u => [u.id, u]))
   }
-  
+
   useEffect(() => {
-    fetchChapters();
-    updateChapterDirectors();
-    setLoading(false);
-  }, [selectedChapter])
+    (async () => {
+      try {
+        setLoading(true)
+        const [chaptersRaw, usersMap] = await Promise.all([
+          fetchChapters(),
+          fetchUsersMap(),
+        ])
+        const hydrated = chaptersRaw.map(c => {
+          const u = usersMap.get(c.director_id)
+          return {
+            ...c,
+            director_full_name: u?.full_name ?? 'Unknown Director',
+            director_email: u?.email ?? '',
+          }
+        })
+        setChapters(hydrated)
+      } catch (e) {
+        console.error(e)
+      } finally {
+        setLoading(false)
+      }
+    })()
+  }, []) // run once on mount
 
   const openChapterModal = (chapter: PendingChapter) => {
     setSelectedChapter(chapter)
@@ -76,27 +88,21 @@ export default function InboxPage() {
     setShowModal(false)
   }
 
-  const approveChapter = (chapterId: string) => {
-    //TODO: make the update chapter api call
-  }
-
-  const rejectChapter = (chapterId: string) => {
-    //TODO: make the delete chapter api call
-  }
+  const approveChapter = (chapterId: string) => { /* TODO */ }
+  const rejectChapter = (chapterId: string) => { /* TODO */ }
 
   const formatDate = (dateLike: Date | string) => {
-    const d = typeof dateLike === 'string' ? new Date(dateLike) : dateLike;
-    if (Number.isNaN(d.getTime())) return 'Invalid date';
+    const d = typeof dateLike === 'string' ? new Date(dateLike) : dateLike
+    if (Number.isNaN(d.getTime())) return 'Invalid date'
     return d.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+      year: 'numeric', month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit'
     })
   }
 
-  const pendingApplications = chapters.filter((chapter: PendingChapter) => chapter.status === 'pending')
+  const pendingApplications = chapters.filter(c => c.status === 'pending')
+
+  // ...rest of your JSX unchanged...
 
   if (loading) {
     return (
@@ -145,10 +151,18 @@ export default function InboxPage() {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-semibold text-gray-900">{chapter.school}</h3>
+                          <h3 className="font-semibold text-gray-900">{chapter.school}, {chapter.number}</h3>
                           <span className="text-sm text-gray-600">{chapter.first_month_school} - {chapter.grad_month}</span>
                         </div>
                         
+                        <div className="flex items-center gap-1 text-sm text-gray-600 mb-3">
+                          <span className="font-medium">{chapter.address},{" "}</span>
+                          {chapter.state !=='N/A' ? 
+                          <span className="text-sm text-gray-500">{chapter.state},{" "}</span>
+                          : null}
+                          <span className="text-sm text-gray-500">{chapter.country}</span>
+                        </div>
+
                         <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
                           <span className="font-medium">{chapter.director_full_name}</span>
                           <span className="text-sm text-gray-500">{chapter.director_email}</span>
@@ -194,6 +208,11 @@ export default function InboxPage() {
                 <div>
                   <label className="text-sm font-medium text-gray-700">School</label>
                   <p className="text-gray-900">{selectedChapter.school}</p>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Address</label>
+                  <p className="text-gray-900">{selectedChapter.address}{selectedChapter.state !== 'N/A' ? `, ${selectedChapter.state}` : ''}{`, ${selectedChapter.country}`}</p>
                 </div>
                 
                 <div>
