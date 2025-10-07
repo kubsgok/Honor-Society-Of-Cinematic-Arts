@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 
 interface Chapters {
+    chapter_id: number;
     chapter_number: number;
     school: string;
     director_id: string;
@@ -10,13 +11,12 @@ interface Chapters {
 export async function GET(request: NextRequest) {
     try {
         const supabase = await createClient();
-        const { data: { user } } = await supabase.auth.getUser();
         
         let chaptersData: Chapters[] = [];
         
          const { data, error } = await supabase
              .from('chapters')
-             .select('chapter_number, school, director_id')
+             .select('chapter_id, chapter_number, school, director_id')
          
         if (error) {
             console.error("Error fetching chapters: ", error);
