@@ -23,8 +23,8 @@ type User = {
   rank?: string | null
   user_type: 'student' | 'chapter_director'
   induction_status: string
-  grad_year?: number | null
-  grad_month?: string | null
+  grad_year: number | null
+  grad_month: string | null
   graduating_this_year: boolean
 }
 
@@ -42,6 +42,7 @@ export default function StaffInterfacePage() {
   const [positionFilter, setPositionFilter] = useState('')
   const [rankFilter, setRankFilter] = useState('')
   const [graduationFilter, setGraduationFilter] = useState('')
+  const [gradYearFilter, setGradYearFilter] = useState('')
   const [inductionFilter, setInductionFilter] = useState('')
   
   // Sort state
@@ -80,7 +81,7 @@ export default function StaffInterfacePage() {
 
   // Helper: build CSV string from users
   const usersToCSV = (rows: User[]) => {
-    const headers = ['id', 'full_name', 'email', 'chapter_number', 'chapter_name', 'position', 'rank', 'user_type', 'induction_status', 'graduating_this_year']
+    const headers = ['id', 'full_name', 'email', 'chapter_number', 'chapter_name', 'position', 'rank', 'user_type', 'induction_status', 'graduating_this_year', 'grad_year', 'grad_month']
     const escape = (v: unknown) => {
       const s = String(v ?? '')
       return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
@@ -99,6 +100,8 @@ export default function StaffInterfacePage() {
           u.user_type,
           u.induction_status,
           u.graduating_this_year,
+          u.grad_year ?? '',
+          u.grad_month ?? '',
         ].map(escape).join(',')
       ),
     ]
@@ -161,34 +164,111 @@ export default function StaffInterfacePage() {
       setLoading(true)
       setError(null)
       try {
-        // TODO: replace with /api/chapters when available
-        // Temporary mocked data to build UI
-        const mockChapters: Chapter[] = [
-          { id: '1', number: '101', name: 'Singapore American School', director_email: 'director@sas.edu', users_count: 142 },
-          { id: '2', number: '102', name: 'International School Bangkok', director_email: 'director@isb.ac.th', users_count: 97 },
-          { id: '3', number: '103', name: 'Taipei American School', director_email: 'director@tas.edu.tw', users_count: 83 },
-        ]
+        console.log('🔥 STAFF: Fetching chapters from API...')
         
-        // Mock user data
-        const mockUsers: User[] = [
-          { id: '1', full_name: 'Alice Johnson', email: 'alice@sas.edu', chapter_id: '1', chapter_name: 'Singapore American School', chapter_number: '101', position: 'President', rank: 'Member', user_type: 'student', induction_status: 'Inducted', grad_year: 2025, grad_month: 'June', graduating_this_year: true },
-          { id: '2', full_name: 'Bob Smith', email: 'bob@sas.edu', chapter_id: '1', chapter_name: 'Singapore American School', chapter_number: '101', position: 'Vice President', rank: 'Officer', user_type: 'student', induction_status: 'Inducted', grad_year: 2026, grad_month: 'May', graduating_this_year: false },
-          { id: '3', full_name: 'Carol Davis', email: 'carol@isb.ac.th', chapter_id: '2', chapter_name: 'International School Bangkok', chapter_number: '102', position: 'Secretary', rank: 'Member', user_type: 'student', induction_status: 'Pending', grad_year: 2025, grad_month: 'December', graduating_this_year: true },
-          { id: '4', full_name: 'David Wilson', email: 'david@tas.edu.tw', chapter_id: '3', chapter_name: 'Taipei American School', chapter_number: '103', position: 'Treasurer', rank: 'Officer', user_type: 'student', induction_status: 'Inducted', grad_year: 2027, grad_month: 'June', graduating_this_year: false },
-          { id: '5', full_name: 'Dr. Emily Chen', email: 'director@sas.edu', chapter_id: '1', chapter_name: 'Singapore American School', chapter_number: '101', position: 'Director', rank: null, user_type: 'chapter_director', induction_status: 'N/A', grad_year: null, grad_month: null, graduating_this_year: false },
-          { id: '6', full_name: 'Prof. Frank Liu', email: 'director@isb.ac.th', chapter_id: '2', chapter_name: 'International School Bangkok', chapter_number: '102', position: 'Director', rank: null, user_type: 'chapter_director', induction_status: 'N/A', grad_year: null, grad_month: null, graduating_this_year: false },
-          { id: '7', full_name: 'Grace Park', email: 'grace@sas.edu', chapter_id: '1', chapter_name: 'Singapore American School', chapter_number: '101', position: 'Member', rank: 'Nominee', user_type: 'student', induction_status: 'Nominated', grad_year: 2026, grad_month: 'May', graduating_this_year: false },
-          { id: '8', full_name: 'Henry Kim', email: 'henry@tas.edu.tw', chapter_id: '3', chapter_name: 'Taipei American School', chapter_number: '103', position: 'Member', rank: 'Member', user_type: 'student', induction_status: 'Inducted', grad_year: 2025, grad_month: 'May', graduating_this_year: true }
-        ]
+        // Fetch chapters from the API
+        const chaptersResponse = await fetch('/api/fetchChapters')
+        console.log('🔥 STAFF: Chapters response status:', chaptersResponse.status)
         
-        setChapters(mockChapters)
-        setUsers(mockUsers)
-        setFilteredUsers(mockUsers)
+        if (!chaptersResponse.ok) {
+          const errorData = await chaptersResponse.json()
+          throw new Error(errorData.error || 'Failed to fetch chapters')
+        }
+        
+        const chaptersData = await chaptersResponse.json()
+        console.log('🔥 STAFF: Raw chapters data:', chaptersData)
+        
+        // Transform the API response to match our Chapter interface
+        interface ApiChapter {
+          chapter_number: number
+          school: string
+          director_id: string
+        }
+        
+        // Update the transformedChapters section (around line 185):
+        const transformedChapters: Chapter[] = (chaptersData.chaptersData || []).map((chapter: ApiChapter) => ({
+          id: chapter.chapter_id || `chapter_${chapter.chapter_number}`, // ✅ Use actual chapter_id
+          number: chapter.chapter_number?.toString() || null,
+          name: chapter.school || 'Unknown School',
+          director_email: null,
+          users_count: null
+        }))
+        
+        console.log('🔥 STAFF: Transformed chapters:', transformedChapters)
+        
+        setChapters(transformedChapters)
+        
+        // Fetch users from the API
+        console.log('🔥 STAFF: Fetching users from API...')
+        const usersResponse = await fetch('/api/fetchUsers')
+        console.log('🔥 STAFF: Users response status:', usersResponse.status)
+        
+        if (!usersResponse.ok) {
+          const errorData = await usersResponse.json()
+          console.error('🔥 STAFF: Failed to fetch users:', errorData)
+          // Set empty users array if fetch fails
+          setUsers([])
+          setFilteredUsers([])
+        } else {
+          const usersData = await usersResponse.json()
+          console.log('🔥 STAFF: Raw users data:', usersData)
+          
+          // Transform users data to match our User interface
+          interface ApiUser {
+            id: string
+            full_name: string
+            chapter_id: string
+            email: string
+            user_type: string
+            rank?: string
+            induction_status?: string
+            in_good_standing: boolean
+            points: number
+            minutes: number
+            seconds: number
+            grad_year?: number
+            grad_month?: string
+          }
+          
+          //fetch chapters
+          //for each user, filter through 
+
+          const transformedUsers: User[] = (usersData || []).map((user: ApiUser) => {
+            // Find the chapter for this user (we'll need to enhance this logic)
+            const userChapter = transformedChapters.find(c => c.id === user.chapter_id) || transformedChapters[0]
+            
+            // Calculate graduating_this_year based on grad_year
+            const currentYear = new Date().getFullYear()
+            const gradYear = user.grad_year || null
+            const isGraduatingThisYear = gradYear === currentYear
+            
+            return {
+              id: user.id,
+              full_name: user.full_name,
+              email: user.email,
+              chapter_id: user.chapter_id,
+              chapter_name: userChapter?.name || 'Unknown Chapter',
+              chapter_number: userChapter?.number || 'Unknown',
+              position: user.user_type,
+              rank: user.rank || null,
+              induction_status: user.induction_status || 'Unknown',
+              grad_year: user.grad_year || null,
+              grad_month: user.grad_month || null,
+              graduating_this_year: isGraduatingThisYear
+            }
+          })
+          
+          console.log('🔥 STAFF: Transformed users:', transformedUsers)
+          setUsers(transformedUsers)
+          setFilteredUsers(transformedUsers)
+        }
       } catch (e) {
+        console.error('🔥 STAFF: Error loading data:', e)
         const msg = e instanceof Error ? e.message : 'Failed to load data'
         setError(msg)
       } finally {
         setLoading(false)
+        console.log('🔥 STAFF: Loading finished')
       }
     }
     load()
@@ -201,7 +281,12 @@ export default function StaffInterfacePage() {
 
       // Apply filters
       if (chapterFilter) {
-        filtered = filtered.filter(u => u.chapter_number === chapterFilter)
+        // Check both chapter_number and chapter_id for flexibility
+        filtered = filtered.filter(u => 
+          u.chapter_number === chapterFilter || 
+          u.chapter_id === chapterFilter ||
+          u.chapter_name.toLowerCase().includes(chapterFilter.toLowerCase())
+        )
       }
       if (positionFilter) {
         filtered = filtered.filter(u => u.position === positionFilter)
@@ -214,6 +299,14 @@ export default function StaffInterfacePage() {
           filtered = filtered.filter(u => u.graduating_this_year)
         } else if (graduationFilter === 'not_graduating') {
           filtered = filtered.filter(u => !u.graduating_this_year)
+        }
+      }
+      if (gradYearFilter) {
+        if (gradYearFilter === 'alum') {
+          const currentYear = new Date().getFullYear()
+          filtered = filtered.filter(u => u.grad_year && u.grad_year < currentYear)
+        } else {
+          filtered = filtered.filter(u => u.grad_year === parseInt(gradYearFilter))
         }
       }
       if (inductionFilter) {
@@ -243,6 +336,10 @@ export default function StaffInterfacePage() {
               aVal = a.rank || ''
               bVal = b.rank || ''
               break
+            case 'grad_year':  // ✅ Add this case
+              aVal = a.grad_year || 0
+              bVal = b.grad_year || 0
+              break
             default:
               return 0
           }
@@ -257,7 +354,7 @@ export default function StaffInterfacePage() {
 
       setFilteredUsers(filtered)
     }
-  }, [users, chapterFilter, positionFilter, rankFilter, graduationFilter, inductionFilter, sortBy, sortOrder])
+  }, [users, chapterFilter, positionFilter, rankFilter, graduationFilter, gradYearFilter, inductionFilter, sortBy, sortOrder])
 
   return (
     <div>
@@ -313,7 +410,7 @@ export default function StaffInterfacePage() {
         {currentView === 'users' && !loading && !error && (
           <div className="mt-6 bg-gray-50 p-4 rounded-lg">
             <h3 className="text-sm font-medium text-gray-900 mb-3">Filters</h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Chapter</label>
                 <select
@@ -322,9 +419,11 @@ export default function StaffInterfacePage() {
                   onChange={(e) => setChapterFilter(e.target.value)}
                 >
                   <option value="">All Chapters</option>
-                  <option value="101">101 - Singapore American School</option>
-                  <option value="102">102 - International School Bangkok</option>
-                  <option value="103">103 - Taipei American School</option>
+                  {chapters.map((chapter) => (
+                    <option key={chapter.id} value={chapter.number || chapter.id}>
+                      {chapter.number ? `${chapter.number} - ${chapter.name}` : chapter.name}
+                    </option>
+                  ))}
                 </select>
               </div>
               
@@ -336,12 +435,9 @@ export default function StaffInterfacePage() {
                   onChange={(e) => setPositionFilter(e.target.value)}
                 >
                   <option value="">All Positions</option>
-                  <option value="President">President</option>
-                  <option value="Vice President">Vice President</option>
-                  <option value="Secretary">Secretary</option>
-                  <option value="Treasurer">Treasurer</option>
-                  <option value="Member">Member</option>
-                  <option value="Director">Director</option>
+                  {Array.from(new Set(users.map(u => u.position))).sort().map(position => (
+                    <option key={position} value={position}>{position}</option>
+                  ))}
                 </select>
               </div>
               
@@ -353,9 +449,9 @@ export default function StaffInterfacePage() {
                   onChange={(e) => setRankFilter(e.target.value)}
                 >
                   <option value="">All Ranks</option>
-                  <option value="Member">Member</option>
-                  <option value="Officer">Officer</option>
-                  <option value="Nominee">Nominee</option>
+                  {Array.from(new Set(users.map(u => u.rank).filter(Boolean) as string[])).sort().map(rank => (
+                    <option key={rank} value={rank}>{rank}</option>
+                  ))}
                 </select>
               </div>
               
@@ -373,6 +469,22 @@ export default function StaffInterfacePage() {
               </div>
               
               <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Grad Year</label>
+                <select
+                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-[#520392] focus:ring-[#520392] text-sm"
+                  value={gradYearFilter}
+                  onChange={(e) => setGradYearFilter(e.target.value)}
+                >
+                  <option value="">All Years</option>
+                  <option value="2025">2025</option>
+                  <option value="2026">2026</option>
+                  <option value="2027">2027</option>
+                  <option value="2028">2028</option>
+                  <option value="alum">Alumni (Pre-2025)</option>
+                </select>
+              </div>
+              
+              <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Induction Status</label>
                 <select
                   className="w-full rounded-md border-gray-300 shadow-sm focus:border-[#520392] focus:ring-[#520392] text-sm"
@@ -380,10 +492,9 @@ export default function StaffInterfacePage() {
                   onChange={(e) => setInductionFilter(e.target.value)}
                 >
                   <option value="">All Statuses</option>
-                  <option value="Inducted">Inducted</option>
-                  <option value="Pending">Pending</option>
-                  <option value="Nominated">Nominated</option>
-                  <option value="N/A">N/A</option>
+                  {Array.from(new Set(users.map(u => u.induction_status))).sort().map(status => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -423,6 +534,7 @@ export default function StaffInterfacePage() {
                   setPositionFilter('')
                   setRankFilter('')
                   setGraduationFilter('')
+                  setGradYearFilter('')
                   setInductionFilter('')
                   setSortBy('')
                   setSortOrder('asc')
