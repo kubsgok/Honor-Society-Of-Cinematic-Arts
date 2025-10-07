@@ -88,9 +88,6 @@ export async function GET(request: NextRequest) {
         }
       } catch (error) {
         console.error("Error during user confirmation:", error);
-        console.error("Error name:", error?.name);
-        console.error("Error message:", error?.message);
-        console.error("Error stack:", error?.stack);
         redirect(`/error?msg=${encodeURIComponent(`Unexpected error during user confirmation: ${error?.message || 'Unknown error'}`)}`);
       }
 
