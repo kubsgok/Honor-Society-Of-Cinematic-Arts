@@ -27,6 +27,7 @@ export default function ProfilePage() {
 	const [error, setError] = useState<string | null>(null)
 	const [success, setSuccess] = useState<string | null>(null)
 	const [user, setUser] = useState<User | null>(null)
+	const [isEditMode, setIsEditMode] = useState(false)
 
 	const [fullName, setFullName] = useState('')
 	const [dob, setDob] = useState('') // YYYY-MM-DD
@@ -163,17 +164,34 @@ export default function ProfilePage() {
 			<div>
 				<NavBar />
 				<div className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8 py-6">
-					<h2 className="text-2xl font-semibold mb-6">Edit Profile</h2>
-
-					<button
-						type="button"
-						className="rounded bg-purple-600 text-white px-3 py-2 text-sm font-medium hover:bg-purple-700 disabled:opacity-50"
-						onClick={async () => {
-							await logout();
-						}}
-					>
-						Logout
-					</button>
+					<div className="flex items-center justify-between mb-6">
+						<h2 className="text-2xl font-semibold">Edit Profile</h2>
+						<div className="flex gap-3">
+							<button
+								type="button"
+								className="rounded bg-purple-600 text-white px-3 py-2 text-sm font-medium disabled:opacity-50"
+								onClick={() => {
+									setIsEditMode(!isEditMode)
+									if (isEditMode) {
+										// Clear any error/success messages when canceling edit
+										setError(null)
+										setSuccess(null)
+									}
+								}}
+							>
+								{isEditMode ? 'Cancel Edit' : 'Edit Profile'}
+							</button>
+							<button
+								type="button"
+								className="rounded bg-gray-600 text-white px-3 py-2 text-sm font-medium disabled:opacity-50"
+								onClick={async () => {
+									await logout();
+								}}
+							>
+								Logout
+							</button>
+						</div>
+					</div>
 					{error && <div className="mb-4 text-sm text-red-600">{error}</div>}
 					{success && <div className="mb-4 text-sm text-green-700">{success}</div>}
 
@@ -182,10 +200,15 @@ export default function ProfilePage() {
 					<label className="block text-sm font-medium mb-1">Full name</label>
 					<input
 						type="text"
-						className="w-full rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400"
+						className={`w-full rounded border px-3 py-2 ${
+							isEditMode
+								? 'border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-400'
+								: 'border-gray-200 bg-gray-50 text-gray-700'
+						}`}
 						value={fullName}
 						onChange={(e) => setFullName(e.target.value)}
 						placeholder="Your name"
+						disabled={!isEditMode}
 					/>
 				</div>
 
@@ -203,13 +226,19 @@ export default function ProfilePage() {
 											<input
 												type="email"
 												placeholder="Enter new email"
-												className="flex-1 rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400"
+												className={`flex-1 rounded border px-3 py-2 ${
+													isEditMode
+														? 'border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-400'
+														: 'border-gray-200 bg-gray-50 text-gray-700'
+												}`}
 												value={newEmail}
 												onChange={(e) => setNewEmail(e.target.value)}
+												disabled={!isEditMode}
 											/>
 											<button
 												type="button"
 												className="rounded bg-purple-600 text-white px-3 py-2 text-sm font-medium hover:bg-purple-700 disabled:opacity-50"
+												disabled={!isEditMode}
 												onClick={async () => {
 													setEmailMsg(null)
 													if (!newEmail) {
@@ -254,17 +283,27 @@ export default function ProfilePage() {
 						<label className="block text-sm font-medium mb-1">DOB</label>
 						<input
 							type="date"
-							className="w-full rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400"
+							className={`w-full rounded border px-3 py-2 ${
+								isEditMode
+									? 'border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-400'
+									: 'border-gray-200 bg-gray-50 text-gray-700'
+							}`}
 							value={dob}
 							onChange={(e) => setDob(e.target.value)}
+							disabled={!isEditMode}
 						/>
 					</div>
 					<div>
 						<label className="block text-sm font-medium mb-1">Graduation month</label>
 						<select
-							className="w-full rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400"
+							className={`w-full rounded border px-3 py-2 ${
+								isEditMode
+									? 'border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-400'
+									: 'border-gray-200 bg-gray-50 text-gray-700'
+							}`}
 							value={gradMonth}
 							onChange={(e) => setGradMonth(e.target.value)}
+							disabled={!isEditMode}
 						>
 							<option value="">Select month</option>
 							{MONTHS.map((m) => (
@@ -277,24 +316,31 @@ export default function ProfilePage() {
 						<input
 							type="number"
 							inputMode="numeric"
-							className="w-full rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400"
+							className={`w-full rounded border px-3 py-2 ${
+								isEditMode
+									? 'border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-400'
+									: 'border-gray-200 bg-gray-50 text-gray-700'
+							}`}
 							value={gradYear}
 							onChange={(e) => setGradYear(e.target.value)}
 							min={1900}
 							max={2100}
+							disabled={!isEditMode}
 						/>
 					</div>
 				</div>
 
-							<div className="pt-2 flex gap-3">
-								<button
-									type="submit"
-									disabled={!canSave}
-									className="inline-flex items-center rounded bg-purple-600 text-white px-4 py-2 text-sm font-medium hover:bg-purple-700 disabled:opacity-50"
-								>
-									{saving ? 'Saving…' : 'Save changes'}
-								</button>
-							</div>
+							{isEditMode && (
+								<div className="pt-2 flex gap-3">
+									<button
+										type="submit"
+										disabled={!canSave}
+										className="inline-flex items-center rounded bg-purple-600 text-white px-4 py-2 text-sm font-medium hover:bg-purple-700 disabled:opacity-50"
+									>
+										{saving ? 'Saving…' : 'Save changes'}
+									</button>
+								</div>
+							)}
 						</form>
 
 						<div className="mt-10">
