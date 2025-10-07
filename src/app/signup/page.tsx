@@ -7,7 +7,6 @@ import { toast } from "react-hot-toast";
 import { months } from "../../lib/lists/months";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
-import { createClient } from '@/utils/supabase/client'
 
 export default function SignupPage() {
   const router = useRouter();
@@ -31,8 +30,6 @@ export default function SignupPage() {
     return hasUpperCase && hasNumber && hasSymbol && hasMinLength;
   };
 
-  const supabase = createClient();
-
   useEffect(() => {
     const fetchChapters = async () => {
       const response = await fetch('/api/fetchChapters');
@@ -45,7 +42,10 @@ export default function SignupPage() {
       for (const chapter of data.chaptersData) {
         chapters.push(chapter.school);
       }
-      setChapters(chapters);
+      const schools = (data.chaptersData || [])
+        .filter((c: any) => c.official === true)
+        .map((c: any) => c.school);
+      setChapters(schools);
     }
     fetchChapters();
   }, [])
@@ -164,10 +164,11 @@ export default function SignupPage() {
             id="school"
             value={school}
             onChange={(e) => setSchool(e.target.value)}
-            className="placeholder:text-[#535151] p-2 border border-[#535151] rounded-md w-1/2"
+            className={`${school ? 'text-black' : 'text-gray-400'} placeholder:text-[#535151] p-2 border border-[#535151] rounded-md w-1/2`}
           >
+            <option value="" disabled hidden>Select your school</option>
             {chapters.map((school: string) => (
-              <option key={school} value={school}>{school}</option>
+              <option key={school} className="text-black" value={school}>{school}</option>
             ))}
           </select>
         </div>
