@@ -13,7 +13,8 @@ interface User {
   induction_status: string
   in_good_standing: boolean
   points: number
-  minutes_film_produced: number
+  minutes: number
+  seconds: number
 }
 
 export default function DashboardPage() {

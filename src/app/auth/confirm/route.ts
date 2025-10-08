@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
         }
       } catch (error) {
         console.error("Error during user confirmation:", error);
-        redirect(`/error?msg=${encodeURIComponent(`Unexpected error during user confirmation: ${error?.message || 'Unknown error'}`)}`);
+        redirect(`/error?msg=${encodeURIComponent(`Unexpected error during user confirmation: ${error instanceof Error ? error.message : 'Unknown error'}`)}`);
       }
 
       // redirect user to specified redirect URL or root of app
