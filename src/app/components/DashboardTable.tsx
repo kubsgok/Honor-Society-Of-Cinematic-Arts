@@ -40,7 +40,8 @@ interface PointsLog {
 interface MinutesFilmLog {
   created_at: string
   modified_by: string
-  modification: number
+  modification_minutes: number
+  modification_seconds: number
   description: string
   role: string
   member: string

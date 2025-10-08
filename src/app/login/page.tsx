@@ -6,21 +6,14 @@ import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
+import {Suspense} from 'react';
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const error = useSearchParams().get("error");
-
-  const validatePassword = (password: string) => {
-    const hasUpperCase = /[A-Z]/.test(password);
-    const hasNumber = /[0-9]/.test(password);
-    const hasSymbol = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
-    const hasMinLength = password.length >= 8;
-    
-    return hasUpperCase && hasNumber && hasSymbol && hasMinLength;
-  };
+  // const searchParams = useSearchParams()
 
   const handleLogin = async () => {
     if(!email || !(email.includes("@")) || email === "") {
@@ -29,10 +22,6 @@ export default function LoginPage() {
     }
     if (!password || password === "") {
       toast.error("Please enter a valid password");
-      return;
-    }
-    if (!validatePassword(password)) {
-      toast.error("Password must contain at least 8 characters, one uppercase letter, one number, and one special character");
       return;
     }
     await login(email, password);
@@ -110,5 +99,13 @@ export default function LoginPage() {
       <div className="w-1/2 bg-[#520392]">
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginContent />
+    </Suspense>
   )
 }
