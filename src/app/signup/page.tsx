@@ -17,7 +17,7 @@ export default function SignupPage() {
   const [dateOfBirth, setDateOfBirth] = useState<string>("");
   const [school, setSchool] = useState("");
   const [gradMonth, setGradMonth] = useState("");
-  const [gradYear, setGradYear] = useState<number>(new Date().getFullYear());
+  const [gradYear, setGradYear] = useState<number | "">("");
   const [chapters, setChapters] = useState<any>([]);
   const error = useSearchParams().get("error");
 
@@ -209,17 +209,19 @@ export default function SignupPage() {
             id="month"
             value={gradMonth}
             onChange={(e) => setGradMonth(e.target.value)}
-            className="placeholder:text-[#535151] p-2 border border-[#535151] rounded-md w-9/40"
+            className={`${gradMonth ? 'text-black' : 'text-gray-400'} placeholder:text-[#535151] p-2 border border-[#535151] rounded-md w-9/40`}
           >
+            <option value="" disabled hidden>Select month</option>
             {months.map((month) => (
-              <option key={month} value={month}>{month}</option>
+              <option key={month} className="text-black" value={month}>{month}</option>
             ))}
           </select>
           <input 
-            type="year" 
+            type="number" 
             value={gradYear}
-            onChange={(e) => setGradYear(Number(e.target.value))}
-            className="placeholder:text-[#535151] p-2 border border-[#535151] rounded-md w-9/40"/>
+            onChange={(e) => setGradYear(e.target.value ? Number(e.target.value) : "")}
+            placeholder="Year"
+            className={`${gradYear ? 'text-black' : 'text-gray-400'} placeholder:text-gray-400 p-2 border border-[#535151] rounded-md w-9/40`}/>
         </div>
         <div className="pl-10 pb-2 pt-8">
           <button
