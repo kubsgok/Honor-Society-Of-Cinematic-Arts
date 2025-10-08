@@ -19,6 +19,14 @@ export default function SignupPage() {
   const [gradMonth, setGradMonth] = useState("");
   const [gradYear, setGradYear] = useState<number | "">("");
   const [chapters, setChapters] = useState<any>([]);
+  const [isChapterDirector, setIsChapterDirector] = useState(false);
+  const [schoolName, setSchoolName] = useState("");
+  const [street, setStreet] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [country, setCountry] = useState("");
+  const [schoolFirstMonth, setSchoolFirstMonth] = useState("");
+  const [schoolGradMonth, setSchoolGradMonth] = useState("");
   const error = useSearchParams().get("error");
 
   const validatePassword = (password: string) => {
@@ -51,8 +59,7 @@ export default function SignupPage() {
   }, [])
 
   const handleSignup = async () => {
-    console.log('Chapters:', chapters);
-    console.log('School:', school);
+
     if (!firstName || !lastName) {
       toast.error("Please enter your first and last name");
       return;
@@ -81,10 +88,22 @@ export default function SignupPage() {
       return;
     }
 
-    if (!gradMonth || !gradYear) {
-      toast.error("Please enter a valid graduation month and year");
-      return;
+    if(isChapterDirector) {
+      if(!schoolName || !street || !city || !state || !country || !schoolFirstMonth || !schoolGradMonth) {
+        toast.error("Please fill in all chapter directorfields");
+        return;
+      }
+    } else {
+      if (!gradMonth || !gradYear) {
+        toast.error("Please enter a valid graduation month and year");
+        return;
+      }
+      if(!school) {
+        toast.error("Please select your school");
+        return;
+      }
     }
+
     //TODO: add validation to ensure gradYear is valid
     const response = await fetch('/api/createTempUser', {
       method: 'POST',
@@ -98,7 +117,6 @@ export default function SignupPage() {
         school
       })
     })
-    console.log(response);
     if (!response.ok) {
       console.error('Failed to create temp user')
       return
@@ -158,20 +176,24 @@ export default function SignupPage() {
             </div>
         </div>
         </div>
-        <p className="text-black pl-10 pt-3 pb-2">School</p>
-        <div className="pl-10 pb-2">
-          <select
-            id="school"
-            value={school}
-            onChange={(e) => setSchool(e.target.value)}
-            className={`${school ? 'text-black' : 'text-gray-400'} placeholder:text-[#535151] p-2 border border-[#535151] rounded-md w-1/2`}
-          >
-            <option value="" disabled hidden>Select your school</option>
-            {chapters.map((school: string) => (
-              <option key={school} className="text-black" value={school}>{school}</option>
-            ))}
-          </select>
-        </div>
+        {!isChapterDirector && (
+          <>
+          <p className="text-black pl-10 pt-3 pb-2">School</p>
+          <div className="pl-10 pb-2">
+            <select
+              id="school"
+              value={school}
+              onChange={(e) => setSchool(e.target.value)}
+              className={`${school ? 'text-black' : 'text-gray-400'} placeholder:text-[#535151] p-2 border border-[#535151] rounded-md w-1/2`}
+            >
+              <option value="" disabled hidden>Select your school</option>
+              {chapters.map((school: string) => (
+                <option key={school} className="text-black" value={school}>{school}</option>
+              ))}
+            </select>
+          </div>
+          </>
+        )}
         <p className="text-black pl-10 pt-3 pb-2">Email</p>
         <div className="pl-10 pb-3">
           <input 
@@ -203,26 +225,129 @@ export default function SignupPage() {
             onChange={(e) => handleDateChange(e.target.value)}
             className="placeholder:text-[#535151] p-2 border border-[#535151] rounded-md w-1/2"/>
         </div>
-        <p className="text-black pl-10 pt-3 pb-2">Graduation Month and Year</p>
-        <div className="pl-10 pb-2 flex gap-8 justify-start">
-          <select
-            id="month"
-            value={gradMonth}
-            onChange={(e) => setGradMonth(e.target.value)}
-            className={`${gradMonth ? 'text-black' : 'text-gray-400'} placeholder:text-[#535151] p-2 border border-[#535151] rounded-md w-9/40`}
-          >
-            <option value="" disabled hidden>Select month</option>
-            {months.map((month) => (
-              <option key={month} className="text-black" value={month}>{month}</option>
-            ))}
-          </select>
+        {!isChapterDirector && (
+          <>
+          <p className="text-black pl-10 pt-3 pb-2">Graduation Month and Year</p>
+          <div className="pl-10 pb-2 flex gap-8 justify-start">
+            <select
+              id="month"
+              value={gradMonth}
+              onChange={(e) => setGradMonth(e.target.value)}
+              className={`${gradMonth ? 'text-black' : 'text-gray-400'} placeholder:text-[#535151] p-2 border border-[#535151] rounded-md w-9/40`}
+            >
+              <option value="" disabled hidden>Select month</option>
+              {months.map((month) => (
+                <option key={month} className="text-black" value={month}>{month}</option>
+              ))}
+            </select>
+            <input 
+              type="number" 
+              value={gradYear}
+              onChange={(e) => setGradYear(e.target.value ? Number(e.target.value) : "")}
+              placeholder="Year"
+              className={`${gradYear ? 'text-black' : 'text-gray-400'} placeholder:text-gray-400 p-2 border border-[#535151] rounded-md w-9/40`}/>
+          </div>
+          </>
+        )}
+        
+        <div className="pl-10 pb-2 flex items-center gap-2">
           <input 
-            type="number" 
-            value={gradYear}
-            onChange={(e) => setGradYear(e.target.value ? Number(e.target.value) : "")}
-            placeholder="Year"
-            className={`${gradYear ? 'text-black' : 'text-gray-400'} placeholder:text-gray-400 p-2 border border-[#535151] rounded-md w-9/40`}/>
+            type="checkbox" 
+            id="chapterDirector"
+            checked={isChapterDirector}
+            onChange={(e) => setIsChapterDirector(e.target.checked)}
+            className="w-4 h-4"
+          />
+          <label htmlFor="chapterDirector" className="text-gray-500 text-sm cursor-pointer">
+            I'm signing up as a chapter director
+          </label>
         </div>
+
+        {isChapterDirector && (
+          <>
+            <p className="text-black pl-10 pt-3 pb-2">School Name</p>
+            <div className="pl-10 pb-3">
+              <input 
+                type="text" 
+                value={schoolName}
+                onChange={(e) => setSchoolName(e.target.value)}
+                placeholder="Enter school name"
+                className="placeholder:text-[#535151] p-2 border border-[#535151] rounded-md w-1/2"/>
+            </div>
+            
+            <p className="text-black pl-10 pt-3 pb-2">Street Address</p>
+            <div className="pl-10 pb-3">
+              <input 
+                type="text" 
+                value={street}
+                onChange={(e) => setStreet(e.target.value)}
+                placeholder="Enter street address"
+                className="placeholder:text-[#535151] p-2 border border-[#535151] rounded-md w-1/2"/>
+            </div>
+            
+            <div className="flex flex-row w-1/2 gap-4">
+              <div className="flex-col">
+                <p className="text-black pl-10 pt-3 pb-2">City</p>
+                <div className="pl-10 pb-3">
+                  <input 
+                    type="text" 
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    placeholder="City"
+                    className="placeholder:text-[#535151] p-2 border border-[#535151] rounded-md"/>
+                </div>
+              </div>
+              <div className="flex-col">
+                <p className="text-black pl-10 pt-3 pb-2">State</p>
+                <div className="pl-10 pb-3">
+                  <input 
+                    type="text" 
+                    value={state}
+                    onChange={(e) => setState(e.target.value)}
+                    placeholder="State"
+                    className="placeholder:text-[#535151] p-2 border border-[#535151] rounded-md"/>
+                </div>
+              </div>
+            </div>
+            
+            <p className="text-black pl-10 pt-3 pb-2">Country</p>
+            <div className="pl-10 pb-3">
+              <input 
+                type="text" 
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                placeholder="Enter country"
+                className="placeholder:text-[#535151] p-2 border border-[#535151] rounded-md w-1/2"/>
+            </div>
+            
+            <p className="text-black pl-10 pt-3 pb-2">School Academic Year</p>
+            <div className="pl-10 pb-2 flex gap-8 justify-start">
+              <select
+                id="schoolFirstMonth"
+                value={schoolFirstMonth}
+                onChange={(e) => setSchoolFirstMonth(e.target.value)}
+                className={`${schoolFirstMonth ? 'text-black' : 'text-gray-400'} placeholder:text-[#535151] p-2 border border-[#535151] rounded-md w-9/40`}
+              >
+                <option value="" disabled hidden>First month</option>
+                {months.map((month) => (
+                  <option key={month} className="text-black" value={month}>{month}</option>
+                ))}
+              </select>
+              <select
+                id="schoolGradMonth"
+                value={schoolGradMonth}
+                onChange={(e) => setSchoolGradMonth(e.target.value)}
+                className={`${schoolGradMonth ? 'text-black' : 'text-gray-400'} placeholder:text-[#535151] p-2 border border-[#535151] rounded-md w-9/40`}
+              >
+                <option value="" disabled hidden>Last month</option>
+                {months.map((month) => (
+                  <option key={month} className="text-black" value={month}>{month}</option>
+                ))}
+              </select>
+            </div>
+          </>
+        )}
+        
         <div className="pl-10 pb-2 pt-8">
           <button
           onClick={handleSignup}
