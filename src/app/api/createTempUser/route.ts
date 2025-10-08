@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     }
     
     if (gradMonth && gradYear && school) {
-        const {error} = await supabase.from('temp_users').insert({
+        const {data, error} = await supabase.from('temp_users').insert({
             full_name: `${firstName} ${lastName}`,
             email: email,
             dob: dob,
@@ -20,23 +20,29 @@ export async function POST(request: NextRequest) {
             grad_year: gradYear,
             school: school,
         })
+        .select('id')
+        .single()
+
         if (error) {
             console.error(error)
             return NextResponse.json({ error: "Failed to create temp user for a student" }, { status: 500 });
         }
+        return NextResponse.json({ message: "Temp user created successfully", id: data.id}, { status: 200 });
     } else {
-        const {error} = await supabase.from('temp_users').insert({
+        const {data, error} = await supabase.from('temp_users').insert({
             full_name: `${firstName} ${lastName}`,
             email: email,
             dob: dob,
         })
+        .select('id')
+        .single()
+
         if (error) {
             console.error(error)
             return NextResponse.json({ error: "Failed to create temp user for a chapter director" }, { status: 500 });
         }
+        return NextResponse.json({ message: "Temp user created successfully", id: data.id}, { status: 200 });
     }
-
-    return NextResponse.json({ message: "Temp user created successfully" }, { status: 200 });
   } catch (error) {
     console.error(error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

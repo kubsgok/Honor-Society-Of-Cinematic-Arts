@@ -6,8 +6,8 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient();
     const chapterData = await request.json();
     
-    const { schoolName, street, city, state, country, schoolFirstMonth, schoolGradMonth} = chapterData;
-    if (!schoolName || !street || !city || !state || !country || !schoolFirstMonth || !schoolGradMonth) {
+    const { director_id, schoolName, street, city, state, country, schoolFirstMonth, schoolGradMonth, official} = chapterData;
+    if (!director_id || !schoolName || !street || !city || !state || !country || !schoolFirstMonth || !schoolGradMonth) {
       return NextResponse.json({ error: "Invalid data" }, { status: 400 });
     }
     
@@ -21,6 +21,7 @@ export async function POST(request: NextRequest) {
 
   const {error} = await supabase.from('chapters').insert({
         chapter_number: 302,
+        director_id: director_id,
         school_name: schoolName,
         street: street,
         city: city,
@@ -28,6 +29,7 @@ export async function POST(request: NextRequest) {
         country: country,
         first_school_month: schoolFirstMonth,
         grad_month: schoolGradMonth,
+        official: official,
     })
     if (error) {
         console.error(error)

@@ -87,27 +87,59 @@ export default function SignupPage() {
       toast.error("Please enter a valid date of birth");
       return;
     }
-
     if(isChapterDirector) {
       if(!schoolName || !street || !city || !state || !country || !schoolFirstMonth || !schoolGradMonth) {
-        toast.error("Please fill in all chapter directorfields");
+        toast.error("Please fill in all chapter director fields");
         return;
       }
-      const response = await fetch('/api/createTempUser', {
-        method: 'POST',
-        body: JSON.stringify({
-          firstName,
-          lastName,
-          email,
-          dob: dateOfBirth,
-        })
-      })
+       const response = await fetch('/api/createTempUser', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({
+           firstName,
+           lastName,
+           email,
+           dob: dateOfBirth,
+         })
+       })
       if (!response.ok) {
         console.error('Failed to create temp user')
         return
       }
+      const directorId = await response.json();
+      console.log("director id", directorId);
 
-      
+      console.log('tempUserData:', tempUserData);
+      console.log("the response: ", getTempRes);
+      if (!getTempRes.ok) {
+        console.error('Failed to fetch temp users')
+        return;
+      }
+
+       const chapterData = {
+         director_id: tempUserId,
+         schoolName: schoolName,
+         street: street,
+         city: city,
+         state: state,
+         country: country,
+         schoolFirstMonth: schoolFirstMonth,
+         schoolGradMonth: schoolGradMonth,
+         official: false,
+       };
+       
+       console.log('Sending chapter data:', chapterData);
+
+      const newRes = await fetch('/api/createChapter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(chapterData)
+      })
+      if (!newRes.ok) {
+        console.error('Failed to create new chapter')
+        return
+      }
+
     } else {
       if (!gradMonth || !gradYear) {
         toast.error("Please enter a valid graduation month and year");
@@ -119,18 +151,19 @@ export default function SignupPage() {
       }
 
       //TODO: add validation to ensure gradYear is valid
-      const response = await fetch('/api/createTempUser', {
-        method: 'POST',
-        body: JSON.stringify({
-          firstName,
-          lastName,
-          email,
-          dob: dateOfBirth,
-          gradMonth,
-          gradYear,
-          school,
-        })
-      })
+       const response = await fetch('/api/createTempUser', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({
+           firstName,
+           lastName,
+           email,
+           dob: dateOfBirth,
+           gradMonth,
+           gradYear,
+           school,
+         })
+       })
       if (!response.ok) {
         console.error('Failed to create temp user');
         return;
