@@ -71,13 +71,10 @@ export async function GET(request: NextRequest) {
                 redirect(`/error?msg=${encodeURIComponent(`Could not insert user into users table: ${insertUserError?.message ?? 'unknown'}`)}`);
               }
 
-              const chapterNo = getChapterNumber();
-
               // insert into chapters table using the newly created user's id as director_id
               const { data: newChapter, error: insertChapterError } = await supabase
                 .from("chapters")
                 .insert({
-                  chapter_number: chapterNo,
                   director_id: newUser.id,
                   school: tempChapter.school,
                   address: tempChapter.address,
@@ -115,8 +112,6 @@ export async function GET(request: NextRequest) {
 
               const { error: deleteTempChapterErr } = await supabase.from("temp_chapters").delete().eq("director_id", tempUser.id);
               if (deleteTempChapterErr) console.error('Failed to delete temp_chapters record:', deleteTempChapterErr);
-
-              setChapterNumber(chapterNo + 1);
 
             } else {
               // Associate flow: find an existing chapters record for the provided school
