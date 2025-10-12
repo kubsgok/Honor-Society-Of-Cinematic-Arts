@@ -13,7 +13,6 @@ interface PendingChapter {
   first_month_school: string
   grad_month: string
   submitted_at?: Date
-  number: number
   address: string
   country: string
   state?: string
@@ -38,7 +37,6 @@ export default function InboxPage() {
       grad_month: chapter.grad_month ?? 'N/A',
       submitted_at: chapter.created_at ? new Date(chapter.created_at) : undefined,
       status: chapter.official ? 'approved' : 'pending',
-      chapter_number: chapter.chapter_number,
       address: chapter.address ?? 'N/A',
       country: chapter.country ?? 'N/A',
       state: chapter.state ?? 'N/A',
@@ -48,7 +46,6 @@ export default function InboxPage() {
   async function fetchUsersMap(): Promise<Map<string, any>> {
     const res = await fetch('/api/fetchUsers')
     const users = await res.json()
-    // adjust if your API returns { users: [...] }
     const list: any[] = Array.isArray(users) ? users : users.users ?? []
     return new Map(list.map(u => [u.id, u]))
   }
@@ -178,7 +175,7 @@ export default function InboxPage() {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-semibold text-gray-900">{chapter.school}, {chapter.number}</h3>
+                          <h3 className="font-semibold text-gray-900">{chapter.school}</h3>
                           <span className="text-sm text-gray-600">{chapter.first_month_school} - {chapter.grad_month}</span>
                         </div>
                         

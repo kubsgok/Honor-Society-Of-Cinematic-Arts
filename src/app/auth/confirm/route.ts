@@ -4,6 +4,8 @@ import { type NextRequest } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 
+import { getChapterNumber, setChapterNumber } from '@/lib/lists/chapters'
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const token_hash = searchParams.get('token_hash')
@@ -39,57 +41,131 @@ export async function GET(request: NextRequest) {
           }
           if (tempUser) {
             console.log("Found temp user:", tempUser);
-            
-            // Find the chapter for this school
-            const { data: chapterData, error: chapterError } = await supabase
-              .from('chapters')
-              .select('*')
-              .eq('school', tempUser.school)
-              .single();
+            if (tempUser.user_type == "Chapter Director") {
+        
+              const { data: tempChapter, error: tempChapterError } = await supabase
+                .from("temp_chapters")
+                .select("*")
+                .eq("director_id", tempUser.id)
+                .single();
+              if (tempChapterError || !tempChapter) {
+                console.error('Error finding temp chapter:', tempUser.id, tempChapterError);
+                redirect(`/error?msg=${encodeURIComponent(`Could not find temp chapter: ${tempUser.id}`)}`);
+              }
 
-            if (chapterError || !chapterData) {
-              console.error('Error finding chapter for school:', tempUser.school, chapterError);
-              redirect(`/error?msg=${encodeURIComponent(`Could not find chapter for school: ${tempUser.school}`)}`);
-            }
+              // insert into users table and return the new user's id
+              const { data: newUser, error: insertUserError } = await supabase
+                .from("users")
+                .insert({
+                  email: tempUser.email,
+                  full_name: tempUser.full_name,
+                  dob: tempUser.dob,
+                  user_type: 'Chapter Director',
+                  in_good_standing: true
+                })
+                .select('id')
+                .single();
 
-            console.log("Found chapter:", chapterData);
+              if (insertUserError || !newUser) {
+                console.error("Error inserting into users table:", insertUserError);
+                redirect(`/error?msg=${encodeURIComponent(`Could not insert user into users table: ${insertUserError?.message ?? 'unknown'}`)}`);
+              }
 
-            // Insert into users table
-            const { error: insertError } = await supabase.from("users").insert({
-              email: tempUser.email,
-              full_name: tempUser.full_name,
-              dob: tempUser.dob,
-              grad_month: tempUser.grad_month,
-              grad_year: tempUser.grad_year,
-              chapter_id: chapterData.chapter_id,
-              user_type: 'Associate',
-              in_good_standing: true
-            });
+              // insert into chapters table using the newly created user's id as director_id
+              const { data: newChapter, error: insertChapterError } = await supabase
+                .from("chapters")
+                .insert({
+                  director_id: newUser.id,
+                  school: tempChapter.school,
+                  address: tempChapter.address,
+                  city: tempChapter.city,
+                  state: tempChapter.state,
+                  country: tempChapter.country,
+                  first_month_school: tempChapter.first_month_school,
+                  grad_month: tempChapter.grad_month,
+                  official: false,
+                })
+                .select('chapter_id, director_id')
+                .single();
+
+              if (insertChapterError || !newChapter) {
+                console.error('Error inserting new chapter:', insertChapterError);
+                // rollback the created user (best-effort)
+                await supabase.from('users').delete().eq('id', newUser.id);
+                redirect(`/error?msg=${encodeURIComponent(`Could not insert new chapter: ${insertChapterError?.message ?? 'unknown'}`)}`);
+              }
+
+              // update the user record to set chapter_id FK to the inserted chapter.chapter_id
+              const { error: updateUserError } = await supabase
+                .from('users')
+                .update({ chapter_id: newChapter.chapter_id })
+                .eq('id', newUser.id);
+
+              if (updateUserError) {
+                console.error('Error updating user with chapter_id:', updateUserError);
+                redirect(`/error?msg=${encodeURIComponent(`Could not link user to chapter: ${updateUserError.message}`)}`);
+              }
+
+              // cleanup temp tables (best-effort)
+              const { error: deleteTempUserErr } = await supabase.from("temp_users").delete().eq("email", tempUser.email);
+              if (deleteTempUserErr) console.error('Failed to delete temp_users record:', deleteTempUserErr);
+
+              const { error: deleteTempChapterErr } = await supabase.from("temp_chapters").delete().eq("director_id", tempUser.id);
+              if (deleteTempChapterErr) console.error('Failed to delete temp_chapters record:', deleteTempChapterErr);
+
+            } else {
+              // Associate flow: find an existing chapters record for the provided school
+              const { data: chapterData, error: chapterError } = await supabase
+                .from('chapters')
+                .select('*')
+                .eq('school', tempUser.school)
+                .maybeSingle();
+
+              if (chapterError || !chapterData) {
+                console.error('Error finding chapter for school:', tempUser.school, chapterError);
+                redirect(`/error?msg=${encodeURIComponent(`Could not find chapter for school: ${tempUser.school}`)}`);
+              }
+
+              // Insert into users table (associate) and set chapter_id to the found chapter.chapter_id
+              const { data: newAssociate, error: insertError } = await supabase
+                .from('users')
+                .insert({
+                  email: tempUser.email,
+                  full_name: tempUser.full_name,
+                  dob: tempUser.dob,
+                  grad_month: tempUser.grad_month,
+                  grad_year: tempUser.grad_year,
+                  chapter_id: chapterData.chapter_id,
+                  user_type: 'Associate',
+                  in_good_standing: true
+                })
+                .select('id')
+                .single();
             
-            if (insertError) {
-              console.error("Error inserting into users table:", insertError);
-              redirect(`/error?msg=${encodeURIComponent(`Could not insert user into users table: ${insertError.message}`)}`);
-            }
-            
-            console.log("Successfully inserted user into users table");
-            // Delete the temp user record
-            const { error: deleteError } = await supabase.from("temp_users").delete().eq("email", user.email);
-            if (deleteError) {
-              console.error("Error deleting temp user record:", deleteError);
-              // Not critical, so don't redirect
+              if (insertError || !newAssociate) {
+                console.error("Error inserting associate into users table:", insertError);
+                redirect(`/error?msg=${encodeURIComponent(`Could not insert user into users table: ${insertError?.message ?? 'unknown'}`)}`);
+              }
+
+              console.log("Successfully inserted associate user:", newAssociate.id);
             }
           } else {
             console.error("Temp user not found for email:", user.email);
             redirect(`/error?msg=${encodeURIComponent('Temp user not found for this email.')}`);
           }
+          // Delete the temp user record
+            const { error: deleteError } = await supabase.from("temp_users").delete().eq("email", user.email);
+            if (deleteError) {
+              console.error("Error deleting temp user record:", deleteError);
+              // Not critical, so don't redirect
+            }
         } else {
           console.error("User email not found after OTP verification.");
           redirect(`/error?msg=${encodeURIComponent('User email not found after OTP verification.')}`);
         }
       } catch (error) {
         console.error("Error during user confirmation:", error);
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        redirect(`/error?msg=${encodeURIComponent(`Unexpected error during user confirmation: ${errorMessage}`)}`);
+        redirect(`/error?msg=${encodeURIComponent(`Unexpected error during user confirmation: ${error instanceof Error ? error.message : 'Unknown error'}`)}`);
       }
 
       // redirect user to specified redirect URL or root of app
