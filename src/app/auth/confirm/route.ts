@@ -4,13 +4,22 @@ import { type NextRequest } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 
-import { getChapterNumber, setChapterNumber } from '@/lib/lists/chapters'
-
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const token_hash = searchParams.get('token_hash')
   const type = searchParams.get('type') as EmailOtpType | null
   const next = searchParams.get('next') ?? '/'
+  let chapterNumber;
+
+  const supabase = await createClient();
+  const { data: chapterNum, error: chapterNumError } = await supabase.rpc('next_chapter_no');
+
+  if (chapterNumError) {
+    console.error('Error getting next chapter number:', chapterNumError);
+  } else {
+    chapterNumber = chapterNum; // this is the incremented number
+    console.log('Next chapter number:', chapterNumber);
+  }
 
   if (token_hash && type) {
     const supabase = await createClient();
@@ -75,6 +84,7 @@ export async function GET(request: NextRequest) {
               const { data: newChapter, error: insertChapterError } = await supabase
                 .from("chapters")
                 .insert({
+                  chapter_number: chapterNum,
                   director_id: newUser.id,
                   school: tempChapter.school,
                   address: tempChapter.address,
