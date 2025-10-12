@@ -27,6 +27,22 @@ export default function ProfilePage() {
 	const [error, setError] = useState<string | null>(null)
 	const [success, setSuccess] = useState<string | null>(null)
 	const [user, setUser] = useState<User | null>(null)
+	const [isEditMode, setIsEditMode] = useState(false)
+
+	// Yearly records for this user (grades 9-12)
+	type YearRecord = {
+		id?: string
+		user_id?: string
+		grade_level?: number | null
+		year_start?: number | null
+		rank?: string | null
+		induction_status?: string | null
+		points?: number | null
+		minutes_film_produced?: number | null
+		position?: string | null
+		chapter_id?: string | null
+	}
+	const [yearlyRecords, setYearlyRecords] = useState<YearRecord[]>([])
 
 	const [fullName, setFullName] = useState('')
 	const [dob, setDob] = useState('') // YYYY-MM-DD
@@ -55,6 +71,26 @@ export default function ProfilePage() {
 				setDob(u.dob ? u.dob.slice(0, 10) : '')
 				setGradMonth(u.grad_month ?? '')
 				setGradYear(u.grad_year ? String(u.grad_year) : '')
+
+				// Fetch yearly records for this user and keep grades 9-12
+				try {
+					const yrResp = await fetch('/api/fetchYearlyRecords')
+					if (yrResp.ok) {
+						const j = await yrResp.json().catch(() => ({}))
+						const all: YearRecord[] = j.userYeardata || []
+										const mine: YearRecord[] = all.filter((r) => {
+											const maybeUserId = (r as Record<string, unknown>)['userId'] as string | undefined
+											return r.user_id === u.id || maybeUserId === u.id
+										})
+						const grades9to12: YearRecord[] = mine.filter((r: YearRecord) => {
+							const g = Number(r.grade_level)
+							return [9,10,11,12].includes(g)
+						})
+						setYearlyRecords(grades9to12)
+					}
+				} catch (e) {
+					console.error('Failed to fetch yearly records for profile', e)
+				}
 			// NOTE: Schema uses chapter_id as UUID – no numeric chapter field exists yet
 			setChapterNumber('')
 					} catch (e) {
@@ -163,17 +199,34 @@ export default function ProfilePage() {
 			<div>
 				<NavBar />
 				<div className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8 py-6">
-					<h2 className="text-2xl font-semibold mb-6">Edit Profile</h2>
-
-					<button
-						type="button"
-						className="rounded bg-purple-600 text-white px-3 py-2 text-sm font-medium hover:bg-purple-700 disabled:opacity-50"
-						onClick={async () => {
-							await logout();
-						}}
-					>
-						Logout
-					</button>
+					<div className="flex items-center justify-between mb-6">
+						<h2 className="text-2xl font-semibold">Edit Profile</h2>
+						<div className="flex gap-3">
+							<button
+								type="button"
+								className="rounded bg-purple-600 text-white px-3 py-2 text-sm font-medium disabled:opacity-50"
+								onClick={() => {
+									setIsEditMode(!isEditMode)
+									if (isEditMode) {
+										// Clear any error/success messages when canceling edit
+										setError(null)
+										setSuccess(null)
+									}
+								}}
+							>
+								{isEditMode ? 'Cancel Edit' : 'Edit Profile'}
+							</button>
+							<button
+								type="button"
+								className="rounded bg-gray-600 text-white px-3 py-2 text-sm font-medium disabled:opacity-50"
+								onClick={async () => {
+									await logout();
+								}}
+							>
+								Logout
+							</button>
+						</div>
+					</div>
 					{error && <div className="mb-4 text-sm text-red-600">{error}</div>}
 					{success && <div className="mb-4 text-sm text-green-700">{success}</div>}
 
@@ -182,10 +235,15 @@ export default function ProfilePage() {
 					<label className="block text-sm font-medium mb-1">Full name</label>
 					<input
 						type="text"
-						className="w-full rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400"
+						className={`w-full rounded border px-3 py-2 ${
+							isEditMode
+								? 'border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-400'
+								: 'border-gray-200 bg-gray-50 text-gray-700'
+						}`}
 						value={fullName}
 						onChange={(e) => setFullName(e.target.value)}
 						placeholder="Your name"
+						disabled={!isEditMode}
 					/>
 				</div>
 
@@ -203,13 +261,19 @@ export default function ProfilePage() {
 											<input
 												type="email"
 												placeholder="Enter new email"
-												className="flex-1 rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400"
+												className={`flex-1 rounded border px-3 py-2 ${
+													isEditMode
+														? 'border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-400'
+														: 'border-gray-200 bg-gray-50 text-gray-700'
+												}`}
 												value={newEmail}
 												onChange={(e) => setNewEmail(e.target.value)}
+												disabled={!isEditMode}
 											/>
 											<button
 												type="button"
 												className="rounded bg-purple-600 text-white px-3 py-2 text-sm font-medium hover:bg-purple-700 disabled:opacity-50"
+												disabled={!isEditMode}
 												onClick={async () => {
 													setEmailMsg(null)
 													if (!newEmail) {
@@ -254,17 +318,27 @@ export default function ProfilePage() {
 						<label className="block text-sm font-medium mb-1">DOB</label>
 						<input
 							type="date"
-							className="w-full rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400"
+							className={`w-full rounded border px-3 py-2 ${
+								isEditMode
+									? 'border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-400'
+									: 'border-gray-200 bg-gray-50 text-gray-700'
+							}`}
 							value={dob}
 							onChange={(e) => setDob(e.target.value)}
+							disabled={!isEditMode}
 						/>
 					</div>
 					<div>
 						<label className="block text-sm font-medium mb-1">Graduation month</label>
 						<select
-							className="w-full rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400"
+							className={`w-full rounded border px-3 py-2 ${
+								isEditMode
+									? 'border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-400'
+									: 'border-gray-200 bg-gray-50 text-gray-700'
+							}`}
 							value={gradMonth}
 							onChange={(e) => setGradMonth(e.target.value)}
+							disabled={!isEditMode}
 						>
 							<option value="">Select month</option>
 							{MONTHS.map((m) => (
@@ -277,24 +351,31 @@ export default function ProfilePage() {
 						<input
 							type="number"
 							inputMode="numeric"
-							className="w-full rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400"
+							className={`w-full rounded border px-3 py-2 ${
+								isEditMode
+									? 'border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-400'
+									: 'border-gray-200 bg-gray-50 text-gray-700'
+							}`}
 							value={gradYear}
 							onChange={(e) => setGradYear(e.target.value)}
 							min={1900}
 							max={2100}
+							disabled={!isEditMode}
 						/>
 					</div>
 				</div>
 
-							<div className="pt-2 flex gap-3">
-								<button
-									type="submit"
-									disabled={!canSave}
-									className="inline-flex items-center rounded bg-purple-600 text-white px-4 py-2 text-sm font-medium hover:bg-purple-700 disabled:opacity-50"
-								>
-									{saving ? 'Saving…' : 'Save changes'}
-								</button>
-							</div>
+							{isEditMode && (
+								<div className="pt-2 flex gap-3">
+									<button
+										type="submit"
+										disabled={!canSave}
+										className="inline-flex items-center rounded bg-purple-600 text-white px-4 py-2 text-sm font-medium hover:bg-purple-700 disabled:opacity-50"
+									>
+										{saving ? 'Saving…' : 'Save changes'}
+									</button>
+								</div>
+							)}
 						</form>
 
 						<div className="mt-10">
@@ -325,6 +406,39 @@ export default function ProfilePage() {
 									<div className="text-base">{user?.minutes_film_produced ?? 0}</div>
 								</div>
 							</div>
+
+							{/* Yearly records table (grades 9-12) */}
+							{yearlyRecords.length > 0 && (
+								<div className="mt-10">
+									<h3 className="text-xl font-semibold mb-4">Yearly Records (Grades 9-12)</h3>
+									<div className="overflow-x-auto rounded-lg border border-gray-200">
+										<table className="min-w-full divide-y divide-gray-200 text-sm">
+											<thead className="bg-gray-50">
+												<tr>
+													<th className="px-4 py-2 text-left">Grade</th>
+													<th className="px-4 py-2 text-left">Year Start</th>
+													<th className="px-4 py-2 text-left">Rank</th>
+													<th className="px-4 py-2 text-left">Induction Status</th>
+													<th className="px-4 py-2 text-right">Points</th>
+													<th className="px-4 py-2 text-right">Minutes Film</th>
+												</tr>
+											</thead>
+											<tbody className="divide-y divide-gray-100 bg-white">
+												{yearlyRecords.map((r) => (
+													<tr key={r.id ?? `${r.user_id}-${r.grade_level}`}>
+														<td className="px-4 py-2">{r.grade_level ?? '-'}</td>
+														<td className="px-4 py-2">{r.year_start ?? '-'}</td>
+														<td className="px-4 py-2">{r.rank ?? '-'}</td>
+														<td className="px-4 py-2">{r.induction_status ?? '-'}</td>
+														<td className="px-4 py-2 text-right">{r.points ?? 0}</td>
+														<td className="px-4 py-2 text-right">{r.minutes_film_produced ?? 0}</td>
+													</tr>
+												))}
+											</tbody>
+										</table>
+									</div>
+								</div>
+							)}
 						</div>
 					</div>
 		</div>

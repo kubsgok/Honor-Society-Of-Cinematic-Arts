@@ -2,13 +2,13 @@
 
 import { signup } from '../../utils/login-signup/actions'
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { toast } from "react-hot-toast";
 import { months } from "../../lib/lists/months";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 
-export default function SignupPage() {
+function SignupContent() {
   const router = useRouter();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -415,5 +415,13 @@ export default function SignupPage() {
       <div className="w-1/2 bg-[#520392]">
       </div>
     </div>
+  )
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SignupContent />
+    </Suspense>
   )
 }

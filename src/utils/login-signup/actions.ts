@@ -41,7 +41,7 @@ export async function signup(email: string, password: string) {
 export async function logout() {
   const supabase = await createClient();
 
-  const { error } = await supabase.auth.signOut('local');
+  const { error } = await supabase.auth.signOut();
   if (error) {
     console.error('Supabase logout error:', error.message || error);
   }

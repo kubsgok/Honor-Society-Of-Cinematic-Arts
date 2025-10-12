@@ -180,6 +180,7 @@ export default function StaffInterfacePage() {
         
         // Transform the API response to match our Chapter interface
         interface ApiChapter {
+          chapter_id: string
           chapter_number: number
           school: string
           director_id: string
@@ -187,7 +188,7 @@ export default function StaffInterfacePage() {
         
         // Update the transformedChapters section (around line 185):
         const transformedChapters: Chapter[] = (chaptersData.chaptersData || []).map((chapter: ApiChapter) => ({
-          id: chapter.chapter_id || `chapter_${chapter.chapter_number}`, // ✅ Use actual chapter_id
+          id: chapter.chapter_id, // ✅ Use actual chapter_id
           number: chapter.chapter_number?.toString() || null,
           name: chapter.school || 'Unknown School',
           director_email: null,
@@ -238,9 +239,9 @@ export default function StaffInterfacePage() {
             const userChapter = transformedChapters.find(c => c.id === user.chapter_id) || transformedChapters[0]
             
             // Calculate graduating_this_year based on grad_year
-            const currentYear = new Date().getFullYear()
-            const gradYear = user.grad_year || null
-            const isGraduatingThisYear = gradYear === currentYear
+            const currentYear = new Date().getFullYear() // 2025
+            const gradYear = user.grad_year
+            const isGraduatingThisYear = gradYear !== null && gradYear !== undefined && gradYear === currentYear
             
             return {
               id: user.id,
@@ -251,6 +252,7 @@ export default function StaffInterfacePage() {
               chapter_number: userChapter?.number || 'Unknown',
               position: user.user_type,
               rank: user.rank || null,
+              user_type: user.user_type as 'student' | 'chapter_director',
               induction_status: user.induction_status || 'Unknown',
               grad_year: user.grad_year || null,
               grad_month: user.grad_month || null,
@@ -310,7 +312,20 @@ export default function StaffInterfacePage() {
         }
       }
       if (inductionFilter) {
-        filtered = filtered.filter(u => u.induction_status === inductionFilter)
+        filtered = filtered.filter(u => {
+          const userStatus = (u.induction_status || '').toLowerCase().trim()
+          const filterStatus = inductionFilter.toLowerCase().trim()
+          
+          // Handle special cases for better matching
+          if (filterStatus === 'not met') {
+            return userStatus === 'not met' || userStatus === 'not_met' || userStatus === 'notmet'
+          }
+          if (filterStatus === 'overridden') {
+            return userStatus === 'overridden' || userStatus === 'overriden' || userStatus === 'override'
+          }
+          
+          return userStatus === filterStatus
+        })
       }
 
       // Apply sorting
@@ -333,8 +348,18 @@ export default function StaffInterfacePage() {
               bVal = b.position
               break
             case 'rank':
-              aVal = a.rank || ''
-              bVal = b.rank || ''
+              // Define rank hierarchy (highest to lowest)
+              const rankOrder = {
+                'Laureate of the Society': 1,
+                'Member Summa Honore': 2,
+                'Member Magna Honore': 3,
+                'Member Cum Honore': 4,
+                'Member First Class': 5,
+                'Member': 6,
+                '': 999 // Empty/null ranks go to bottom
+              }
+              aVal = rankOrder[a.rank as keyof typeof rankOrder] || 999
+              bVal = rankOrder[b.rank as keyof typeof rankOrder] || 999
               break
             case 'grad_year':  // ✅ Add this case
               aVal = a.grad_year || 0
@@ -347,6 +372,9 @@ export default function StaffInterfacePage() {
           if (typeof aVal === 'string' && typeof bVal === 'string') {
             const result = aVal.localeCompare(bVal)
             return sortOrder === 'asc' ? result : -result
+          }
+          if (typeof aVal === 'number' && typeof bVal === 'number') {
+            return sortOrder === 'asc' ? aVal - bVal : bVal - aVal
           }
           return 0
         })
@@ -449,9 +477,12 @@ export default function StaffInterfacePage() {
                   onChange={(e) => setRankFilter(e.target.value)}
                 >
                   <option value="">All Ranks</option>
-                  {Array.from(new Set(users.map(u => u.rank).filter(Boolean) as string[])).sort().map(rank => (
-                    <option key={rank} value={rank}>{rank}</option>
-                  ))}
+                  <option value="Laureate of the Society">Laureate of the Society</option>
+                  <option value="Member Summa Honore">Member Summa Honore</option>
+                  <option value="Member Magna Honore">Member Magna Honore</option>
+                  <option value="Member Cum Honore">Member Cum Honore</option>
+                  <option value="Member First Class">Member First Class</option>
+                  <option value="Member">Member</option>
                 </select>
               </div>
               
@@ -492,9 +523,10 @@ export default function StaffInterfacePage() {
                   onChange={(e) => setInductionFilter(e.target.value)}
                 >
                   <option value="">All Statuses</option>
-                  {Array.from(new Set(users.map(u => u.induction_status))).sort().map(status => (
-                    <option key={status} value={status}>{status}</option>
-                  ))}
+                  <option value="Met">Met</option>
+                  <option value="not met">Not Met</option>
+                  <option value="overriden">Overridden</option>
+                  <option value="revoked">Revoked</option>
                 </select>
               </div>
             </div>
@@ -633,15 +665,11 @@ export default function StaffInterfacePage() {
                         </span>
                       </div>
                       <div className="col-span-1 text-sm">
-                        {user.user_type === 'student' ? (
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            user.graduating_this_year ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'
-                          }`}>
-                            {user.graduating_this_year ? 'Yes' : 'No'}
-                          </span>
-                        ) : (
-                          <span className="text-gray-400">N/A</span>
-                        )}
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          user.graduating_this_year ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {user.graduating_this_year ? 'Yes' : 'No'}
+                        </span>
                       </div>
                       <div className="col-span-1 text-sm">
                         <button
