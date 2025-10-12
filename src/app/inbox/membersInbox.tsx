@@ -6,13 +6,12 @@ import { Mail, Calendar, CheckCircle, X } from 'lucide-react'
 
 interface PendingMember {
   id: string
-  full_name?: string
-  email?: string
-  chapter_id?: string
-  school?: string
-  grad_month?: string
-  grad_year?: number
-  submitted_at?: Date
+  full_name: string
+  email: string
+  dob: Date
+  grad_month: string
+  grad_year: number
+  submitted_at: Date
   status?: 'pending' | 'approved'
 }
 
@@ -27,18 +26,24 @@ export default function MembersInbox() {
     const data = await res.json()
     if (!res.ok) throw new Error('Failed to fetch users')
     const list: any[] = Array.isArray(data) ? data : data.users ?? []
+
+    const newRes = await fetch('/api/getCurrentUser')
+    const currUser = await newRes.json()
+    if (!newRes.ok) throw new Error("Failed to fetch current user")
+
     // keep Associate users and map fields
     return list
       .filter(u => u.user_type === 'Associate')
+      .filter(u => u.chapter_id === currUser.chapter_id)
+      .filter(u => u.in_good_standing === true)
       .map((u: any) => ({
         id: u.id,
         full_name: u.full_name ?? `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim(),
-        email: u.email ?? '',
-        chapter_id: u.chapter_id ?? undefined,
-        school: u.school ?? u.school_name ?? undefined,
-        grad_month: u.grad_month ?? 'N/A',
-        grad_year: u.grad_year ?? undefined,
-        submitted_at: u.created_at ? new Date(u.created_at) : undefined,
+        email: u.email,
+        dob: new Date(u.dob),
+        grad_month: u.grad_month,
+        grad_year: u.grad_year,
+        submitted_at: new Date,
         status: u.approved ? 'approved' : 'pending',
       }))
   }
@@ -70,10 +75,13 @@ export default function MembersInbox() {
   }
 
   const approveMember = async (userId: string) => {
-    const res = await fetch('/api/updateUser', {
+    const res = await fetch('/api/updateUserInfo', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userId, approved: true })
+      body: JSON.stringify({ 
+        user_id: userId, 
+        user_type: "Nominee for Induction",
+        modification: 'user_type'
+    })
     })
     if (!res.ok) {
       console.error('Failed to approve member')
@@ -84,10 +92,12 @@ export default function MembersInbox() {
   }
 
   const rejectMember = async (userId: string) => {
-    const res = await fetch('/api/updateUser', {
+    const res = await fetch('/api/updateUserInfo', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userId, rejected: true })
+      body: JSON.stringify({ 
+        user_id: userId, 
+        modification: 'in_good_standing'
+    })
     })
     if (!res.ok) {
       console.error('Failed to reject member')
@@ -100,7 +110,7 @@ export default function MembersInbox() {
   const formatDate = (dateLike: Date | string | undefined) => {
     if (!dateLike) return 'Submission date not available'
     const d = typeof dateLike === 'string' ? new Date(dateLike) : dateLike
-    if (Number.isNaN(d.getTime())) return 'Invalid date'
+    if (Number.isNaN(d.getTime())) return 'Invalid Date'
     return d.toLocaleDateString('en-US', {
       year: 'numeric', month: 'short', day: 'numeric',
       hour: '2-digit', minute: '2-digit'
@@ -156,12 +166,17 @@ export default function MembersInbox() {
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           <h3 className="font-semibold text-gray-900">{m.full_name}</h3>
-                          <span className="text-sm text-gray-600">{m.school ?? ''}</span>
+                          <span className="text-sm text-gray-600">{m.email}</span>
                         </div>
 
-                        <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
-                          <span className="font-medium">{m.email}</span>
-                          {m.chapter_id ? <span className="text-sm text-gray-500">Chapter {m.chapter_id}</span> : null}
+                        <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
+                          <span className="font-medium">Date of Birth: </span>
+                          <span className="text-sm text-gray-500">{formatDate(m.dob)}</span>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
+                          <span className="font-medium">Expected Graduation: </span>
+                          <span className="text-sm text-gray-500">{m.grad_month ? m.grad_month : "N/A"} {m.grad_year ? m.grad_year : "N/A"}</span>
                         </div>
 
                         <div className="flex items-center text-sm text-gray-500">
@@ -211,12 +226,12 @@ export default function MembersInbox() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-gray-700">School / Chapter</label>
-                  <p className="text-gray-900">{selectedMember.school ?? selectedMember.chapter_id ?? 'N/A'}</p>
+                  <label className="text-sm font-medium text-gray-700">Date of Birth</label>
+                  <p className="text-gray-900">{formatDate(selectedMember.dob)}</p>
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Graduation</label>
+                  <label className="text-sm font-medium text-gray-700">Expected Graduation</label>
                   <p className="text-gray-900">{selectedMember.grad_month ?? 'N/A'} {selectedMember.grad_year ?? ''}</p>
                 </div>
 

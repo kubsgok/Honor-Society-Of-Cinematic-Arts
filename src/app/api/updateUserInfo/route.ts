@@ -146,6 +146,30 @@ export async function PUT(request: NextRequest) {
 
     }
 
+    if (modification === 'user_type') {
+      if (!user_id) {
+        return NextResponse.json({ error: "Invalid data" }, { status: 400 });
+      }
+      
+      // Get current user's user type
+        const { data: currentUser } = await supabase
+        .from('users')
+        .select('user_type')
+        .eq('id', user_id)
+        .single()
+      
+      if (currentUser) {
+        await supabase
+          .from('users')
+          .update({ user_type: user_type })
+          .eq('id', user_id)
+      
+      } else {
+        console.log(`API: No current user found for ID: ${user_id}`)
+      }
+      return NextResponse.json({ message: "User's user type updated successfully" }, { status: 200 });
+    }
+
     return NextResponse.json({ error: "Invalid user modification" }, { status: 400 });
   } catch (error) {
     console.error(error)
