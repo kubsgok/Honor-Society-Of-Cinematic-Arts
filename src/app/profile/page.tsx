@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { NavBar } from '../components/NavBar'
 import { months as MONTHS } from '@/lib/lists/months'
 import { logout } from '@/utils/login-signup/actions'
+import { createClient } from "@/utils/supabase/client";
 
 type User = {
 	id: string
@@ -28,6 +29,8 @@ export default function ProfilePage() {
 	const [success, setSuccess] = useState<string | null>(null)
 	const [user, setUser] = useState<User | null>(null)
 	const [isEditMode, setIsEditMode] = useState(false)
+
+	const supabase = createClient();
 
 	// Yearly records for this user (grades 9-12)
 	type YearRecord = {
@@ -281,14 +284,29 @@ export default function ProfilePage() {
 														return
 													}
 													try {
+														// First, send the email verification
 														const resp = await fetch('/api/changeEmail', {
-															method: 'POST',
+															method: 'PUT',
 															headers: { 'Content-Type': 'application/json' },
-															body: JSON.stringify({ newEmail }),
+															body: JSON.stringify({ email: newEmail }),
 														})
 														const j = await resp.json().catch(() => ({}))
 														if (!resp.ok) throw new Error(j.error || 'Failed to request change')
-														setEmailMsg('Verification email sent. Please check your inbox.')
+														
+														// ADD YOUR DATABASE UPDATE CODE HERE:
+														const { error: updateUserError } = await supabase
+															.from('users')
+															.update({ email: newEmail })
+															.eq('id', user?.id);
+
+														if (updateUserError) {
+															console.error('Error updating user email:', updateUserError);
+															setEmailMsg(`Email verification sent, but database update failed: ${updateUserError.message}`)
+															return
+														}
+														
+														setEmailMsg('Email updated in database and verification sent.')
+														
 													} catch (err) {
 														const msg = err instanceof Error ? err.message : 'Failed to request change'
 														setEmailMsg(msg)
