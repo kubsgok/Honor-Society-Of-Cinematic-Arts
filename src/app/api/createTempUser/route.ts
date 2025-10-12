@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
             full_name: `${firstName} ${lastName}`,
             email: email,
             dob: dob,
+            user_type: "Chapter Director"
         })
         .select('id')
         .single()

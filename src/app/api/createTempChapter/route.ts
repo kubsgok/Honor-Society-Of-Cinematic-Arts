@@ -10,24 +10,16 @@ export async function POST(request: NextRequest) {
     if (!director_id || !schoolName || !street || !city || !state || !country || !schoolFirstMonth || !schoolGradMonth) {
       return NextResponse.json({ error: "Invalid data" }, { status: 400 });
     }
-    
-        /**const [schoolName, setSchoolName] = useState("");
-  const [street, setStreet] = useState("");
-  const [city, setCity] = useState("");
-  const [state, setState] = useState("");
-  const [country, setCountry] = useState("");
-  const [schoolFirstMonth, setSchoolFirstMonth] = useState("");
-  const [schoolGradMonth, setSchoolGradMonth] = useState(""); */
 
-  const {error} = await supabase.from('chapters').insert({
+  const {error} = await supabase.from('temp_chapters').insert({
         chapter_number: 302,
         director_id: director_id,
-        school_name: schoolName,
-        street: street,
+        school: schoolName,
+        address: street,
         city: city,
         state: state,
         country: country,
-        first_school_month: schoolFirstMonth,
+        first_month_school: schoolFirstMonth,
         grad_month: schoolGradMonth,
         official: official,
     })

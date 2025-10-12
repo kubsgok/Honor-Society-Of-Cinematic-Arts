@@ -24,6 +24,7 @@ export default function Home() {
           .select("*")
           .eq("email", user.email)
           .single();
+        console.log("the user data: ", userData);
         setUserData(userData);
       }
     } catch (error) {

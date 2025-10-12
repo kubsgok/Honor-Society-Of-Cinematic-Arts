@@ -92,6 +92,7 @@ export default function SignupPage() {
         toast.error("Please fill in all chapter director fields");
         return;
       }
+      console.log("firstname: ", firstName, ".lastName: ", lastName, ". email: ", email, ". dob: ", dateOfBirth);
        const response = await fetch('/api/createTempUser', {
          method: 'POST',
          headers: { 'Content-Type': 'application/json' },
@@ -106,18 +107,16 @@ export default function SignupPage() {
         console.error('Failed to create temp user')
         return
       }
-      const directorId = await response.json();
-      console.log("director id", directorId);
-
-      console.log('tempUserData:', tempUserData);
-      console.log("the response: ", getTempRes);
-      if (!getTempRes.ok) {
-        console.error('Failed to fetch temp users')
+      const created = await response.json();
+      const directorId = created?.id;
+      console.log("director id", created?.id);
+      if(!directorId) {
+        console.error('createTempUser did not return an id');
         return;
       }
 
        const chapterData = {
-         director_id: tempUserId,
+         director_id: directorId,
          schoolName: schoolName,
          street: street,
          city: city,
@@ -130,7 +129,7 @@ export default function SignupPage() {
        
        console.log('Sending chapter data:', chapterData);
 
-      const newRes = await fetch('/api/createChapter', {
+      const newRes = await fetch('/api/createTempChapter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(chapterData)
