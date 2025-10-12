@@ -25,7 +25,8 @@ export async function signup(email: string, password: string) {
 
   // type-casting here for convenience
   // in practice, you should validate your inputs
-  const { error } = await supabase.auth.signUp({ email, password });
+  const { data, error } = await supabase.auth.signUp({ email, password });
+  console.log('signup response:', { data, error })
 
   if (error) {
     // Log the actual error to the terminal for debugging
@@ -40,7 +41,7 @@ export async function signup(email: string, password: string) {
 export async function logout() {
   const supabase = await createClient();
 
-  const { error } = await supabase.auth.signOut('local');
+  const { error } = await supabase.auth.signOut();
   if (error) {
     console.error('Supabase logout error:', error.message || error);
   }

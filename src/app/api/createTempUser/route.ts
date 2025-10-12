@@ -5,40 +5,45 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
     const userData = await request.json();
-    // console.log('Received user data:', userData);
     
-    const { firstName, lastName, email, dob, gradMonth, gradYear, school } = userData;
-    
-    // console.log('Extracted fields:', { firstName, lastName, email, dob, gradMonth, gradYear, school });
-    
-    if (!firstName || !lastName || !email || !dob || !gradMonth || !gradYear || !school) {
-    //   console.log('Validation failed - missing fields:', {
-    //     firstName: !!firstName,
-    //     lastName: !!lastName,
-    //     email: !!email,
-    //     dob: !!dob,
-    //     gradMonth: !!gradMonth,
-    //     gradYear: !!gradYear,
-    //     school: !!school
-    //   });
+    const { firstName, lastName, email, dob, gradMonth, gradYear, school} = userData;
+    if (!firstName || !lastName || !email || !dob ) {
       return NextResponse.json({ error: "Invalid data" }, { status: 400 });
     }
     
-    const {error} = await supabase.from('temp_users').insert({
-        full_name: `${firstName} ${lastName}`,
-        email: email,
-        dob: dob,
-        grad_month: gradMonth,
-        grad_year: gradYear,
-        school: school,
-    })
+    if (gradMonth && gradYear && school) {
+        const {data, error} = await supabase.from('temp_users').insert({
+            full_name: `${firstName} ${lastName}`,
+            email: email,
+            dob: dob,
+            grad_month: gradMonth,
+            grad_year: gradYear,
+            school: school,
+        })
+        .select('id')
+        .single()
 
-    if (error) {
-        console.error(error)
-        return NextResponse.json({ error: "Failed to create temp user" }, { status: 500 });
+        if (error) {
+            console.error(error)
+            return NextResponse.json({ error: "Failed to create temp user for a student" }, { status: 500 });
+        }
+        return NextResponse.json({ message: "Temp user created successfully", id: data.id}, { status: 200 });
+    } else {
+        const {data, error} = await supabase.from('temp_users').insert({
+            full_name: `${firstName} ${lastName}`,
+            email: email,
+            dob: dob,
+            user_type: "Chapter Director"
+        })
+        .select('id')
+        .single()
+
+        if (error) {
+            console.error(error)
+            return NextResponse.json({ error: "Failed to create temp user for a chapter director" }, { status: 500 });
+        }
+        return NextResponse.json({ message: "Temp user created successfully", id: data.id}, { status: 200 });
     }
-
-    return NextResponse.json({ message: "Temp user created successfully" }, { status: 200 });
   } catch (error) {
     console.error(error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
