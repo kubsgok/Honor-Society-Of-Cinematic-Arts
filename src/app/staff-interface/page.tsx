@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { NavBar } from '@/app/components/NavBar'
+import { Shield, ShieldOff, AlertTriangle } from 'lucide-react'
 
 type Chapter = {
   id: string
@@ -12,6 +13,8 @@ type Chapter = {
   director_name?: string | null
   director_email?: string | null
   users_count?: number | null
+  status?: string
+  in_good_standing?: boolean
 }
 
 type User = {
@@ -608,9 +611,10 @@ export default function StaffInterfacePage() {
           <div className="mt-6 overflow-hidden rounded-lg border border-gray-200">
             <div className="grid grid-cols-12 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700">
               <div className="col-span-2">Chapter #</div>
-              <div className="col-span-5">Chapter name</div>
+              <div className="col-span-4">Chapter name</div>
               <div className="col-span-3">Chapter director</div>
-              <div className="col-span-2 text-right">Members</div>
+              <div className="col-span-2">Status</div>
+              <div className="col-span-1 text-right">Members</div>
             </div>
             <ul className="divide-y divide-gray-200">
               {chapters.map((c) => (
@@ -620,9 +624,32 @@ export default function StaffInterfacePage() {
                     onClick={() => router.push(`/chapters/${c.id}`)}
                   >
                     <div className="col-span-2 font-medium">{c.number ?? '-'}</div>
-                    <div className="col-span-5">{c.name}</div>
+                    <div className="col-span-4">{c.name}</div>
                     <div className="col-span-3 text-sm text-gray-600">{c.director_name ?? c.director_email ?? '-'}</div>
-                    <div className="col-span-2 text-right">{c.users_count ?? 0}</div>
+                    <div className="col-span-2 flex items-center gap-2 text-sm">
+                      {c.status === 'In Good Standing' && (
+                        <>
+                          <Shield className="h-4 w-4 text-green-600" />
+                          <span className="text-green-700">In Good Standing</span>
+                        </>
+                      )}
+                      {c.status === 'On Probation' && (
+                        <>
+                          <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                          <span className="text-yellow-700">On Probation</span>
+                        </>
+                      )}
+                      {c.status === 'Status Revoked' && (
+                        <>
+                          <ShieldOff className="h-4 w-4 text-red-600" />
+                          <span className="text-red-700">Status Revoked</span>
+                        </>
+                      )}
+                      {!c.status && (
+                        <span className="text-gray-500">Unknown</span>
+                      )}
+                    </div>
+                    <div className="col-span-1 text-right">{c.users_count ?? 0}</div>
                   </button>
                 </li>
               ))}
