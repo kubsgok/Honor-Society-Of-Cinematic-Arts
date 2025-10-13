@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { BookOpen, School, Shield, ShieldOff, SquareCheck, Square, EllipsisVertical, Funnel, FunnelX } from 'lucide-react'
+import { BookOpen, School, Shield, ShieldOff, AlertTriangle, SquareCheck, Square, EllipsisVertical, Funnel, FunnelX } from 'lucide-react'
 import { CopyPill } from './CopyPill'
 import { PointsModificationModal } from './PointsModificationModal'
 import { MinutesFilmProducedModal } from './MinutesFilmProducedModal'
@@ -54,6 +54,7 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
   const [isEditMinutesFilmMode, setIsEditMinutesFilmMode] = useState(false)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [isOfficer, setIsOfficer] = useState(false)
+  const [chapterInfo, setChapterInfo] = useState<{ name: string; number: string; status: string } | null>(null)
   const [isEditInGoodStandingMode, setIsEditInGoodStandingMode] = useState(false)
   const [isGoodStandingModalOpen, setIsGoodStandingModalOpen] = useState(false)
   const [pendingGoodStandingUserId, setPendingGoodStandingUserId] = useState<string | null>(null)
@@ -128,7 +129,32 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
       }
     }
     
+    const fetchChapterInfo = async () => {
+      try {
+        const response = await fetch('/api/fetchChapters')
+        if (response.ok) {
+          const data = await response.json()
+          const currentUserData = await fetch('/api/getCurrentUser').then(res => res.ok ? res.json() : null)
+          
+          if (currentUserData && data.chaptersData) {
+            // Find the chapter that matches the current user's chapter_id
+            const userChapter = data.chaptersData.find((chapter: any) => chapter.chapter_id === currentUserData.chapter_id)
+            if (userChapter) {
+              setChapterInfo({
+                name: userChapter.school,
+                number: userChapter.chapter_number?.toString() || '',
+                status: userChapter.status || 'Unknown'
+              })
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching chapter info:', error)
+      }
+    }
+    
     fetchCurrentUser()
+    fetchChapterInfo()
   }, [])
 
   useEffect(() => {
@@ -358,15 +384,37 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
         <div className="ml-auto flex items-center gap-2">
           <p className="flex items-center text-sm text-gray-800 px-2 py-1">
             <BookOpen className="h-4 w-4 mr-2" />
-            Chapter 12
+            Chapter {chapterInfo?.number || ''}
           </p>
-          <p className="flex items-center text-sm text-gray-800 px-2 py-1">
-            <Shield className="h-4 w-4 mr-2" />
-            In Good Standing 
+          <p className="flex items-center text-sm px-2 py-1">
+            {chapterInfo?.status === 'In Good Standing' && (
+              <>
+                <Shield className="h-4 w-4 mr-2 text-green-600" />
+                <span className="text-green-700">In Good Standing</span>
+              </>
+            )}
+            {chapterInfo?.status === 'On Probation' && (
+              <>
+                <AlertTriangle className="h-4 w-4 mr-2 text-yellow-600" />
+                <span className="text-yellow-700">On Probation</span>
+              </>
+            )}
+            {chapterInfo?.status === 'Status Revoked' && (
+              <>
+                <ShieldOff className="h-4 w-4 mr-2 text-red-600" />
+                <span className="text-red-700">Status Revoked</span>
+              </>
+            )}
+            {!chapterInfo?.status && (
+              <>
+                <Shield className="h-4 w-4 mr-2 text-gray-600" />
+                <span className="text-gray-700">Loading...</span>
+              </>
+            )}
           </p>
           <p className="flex items-center text-sm text-gray-800 px-2 py-1">
             <School className="h-4 w-4 mr-2" />
-            Singapore American School
+            {chapterInfo?.name || 'Loading...'}
           </p>
         </div>
       </div>

@@ -17,6 +17,8 @@ interface Chapters {
     rejected: boolean;
     official: boolean;
     member_count?: number;
+    status?: string;
+    in_good_standing?: boolean;
 }
 
 export async function GET(request: NextRequest) {
@@ -40,15 +42,28 @@ export async function GET(request: NextRequest) {
                 state, 
                 rejected, 
                 official,
+                status,
                 director:users!director_id(full_name, email)
              `)
          
+        console.log('🔥 CHAPTERS TABLE: Direct data from chapters table:', data);
+        console.log('🔥 CHAPTERS TABLE: Query error (if any):', error);
+        
         if (error) {
             console.error("Error fetching chapters: ", error);
             return NextResponse.json({ error: "Internal server error" }, { status: 500 });
         }
 
         const rawData = data || [];
+        
+        console.log('🔥 FETCH CHAPTERS: Number of chapters fetched:', rawData.length);
+        console.log('🔥 FETCH CHAPTERS: Raw data from database:', JSON.stringify(rawData, null, 2));
+        
+        // Check if status field exists in first chapter
+        if (rawData.length > 0) {
+            console.log('🔥 FETCH CHAPTERS: First chapter status field:', rawData[0].status);
+            console.log('🔥 FETCH CHAPTERS: All fields in first chapter:', Object.keys(rawData[0]));
+        }
         
         // Get user counts for each chapter
         const { data: userCounts, error: userCountError } = await supabase
@@ -68,6 +83,8 @@ export async function GET(request: NextRequest) {
                 chapterUserCounts[user.chapter_id] = (chapterUserCounts[user.chapter_id] || 0) + 1;
             }
         });
+        
+        console.log('🔥 FETCH CHAPTERS: Chapter user counts:', chapterUserCounts);
         
         // Transform data to include director information and member count
         chaptersData = rawData
@@ -89,9 +106,13 @@ export async function GET(request: NextRequest) {
             state: chapter.state,
             rejected: chapter.rejected,
             official: chapter.official,
-            member_count: chapterUserCounts[chapter.chapter_id] || 0
+            member_count: chapterUserCounts[chapter.chapter_id] || 0,
+            status: chapter.status,
+            in_good_standing: chapter.status === 'In Good Standing'
           }));
          
+        console.log('🔥 FETCH CHAPTERS: Final transformed chapters data:', JSON.stringify(chaptersData, null, 2));
+        
         return NextResponse.json({ chaptersData });
       } catch (error) {
         console.error("Error fetching user info: ", error);
