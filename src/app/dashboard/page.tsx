@@ -69,13 +69,18 @@ export default function DashboardPage() {
       const filteredUsers = allUsersData.filter((user: User) => {
         const sameChapter = user.chapter_id === currentUserData.chapter_id
         const allowedType = allowedUserTypes.includes(user.user_type || '')
-        return sameChapter && allowedType
+        const notRevoked = user.induction_status?.toLowerCase() !== 'revoked'
+        const inGoodStanding = user.in_good_standing === true
+        
+        return sameChapter && allowedType && notRevoked && inGoodStanding
       })
       
       console.log('Current user chapter:', currentUserData.chapter_id)
       console.log('Total users before filtering:', allUsersData.length)
       console.log('Users in same chapter:', allUsersData.filter((u: User) => u.chapter_id === currentUserData.chapter_id).length)
-      console.log('Users after filtering by type:', filteredUsers.length)
+      console.log('Users after filtering by type:', allUsersData.filter((u: User) => u.chapter_id === currentUserData.chapter_id && allowedUserTypes.includes(u.user_type || '')).length)
+      console.log('Users after excluding revoked:', allUsersData.filter((u: User) => u.chapter_id === currentUserData.chapter_id && allowedUserTypes.includes(u.user_type || '') && u.induction_status?.toLowerCase() !== 'revoked').length)
+      console.log('Users after good standing filter (final):', filteredUsers.length)
       
       setUsers(filteredUsers)
       setError(null)
@@ -103,9 +108,10 @@ export default function DashboardPage() {
           <div>
             {users.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-gray-600">No chapter members found with the required roles.</p>
+                <p className="text-gray-600">No qualifying chapter members found.</p>
                 <p className="text-sm text-gray-500 mt-2">
-                  Only members with roles: Member, Officer, President, Vice-President, or Chapter Director are shown.
+                  Showing members with roles: Member, Officer, President, Vice-President, or Chapter Director<br/>
+                  who are in good standing and not revoked.
                 </p>
               </div>
             ) : (
