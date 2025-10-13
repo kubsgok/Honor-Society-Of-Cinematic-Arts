@@ -17,7 +17,7 @@ export default async function InboxPage() {
 
   // redirect Associates explicitly to restricted page
   const userType = userData?.user_type;
-  if (userType === 'Associate'  || userType === "Nominee for Induction") {
+  if (userType === 'Associate' || userType === "Nominee for Induction" || userType === "Alum" || userType === "Officer" || userType === "Vice President" || userType === "Member" || userType === "President") {
     redirect('/restricted')
   }
 

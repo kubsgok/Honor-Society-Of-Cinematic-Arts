@@ -38,7 +38,7 @@ export default function DashboardPage() {
         return
       }
 
-      if (fetchedCurrent.user_type === "Associate") {
+      if (fetchedCurrent.user_type === "Associate" || fetchedCurrent.user_type === "Nominee for Induction" || fetchedCurrent.user_type === "Alum") {
         // redirect Associates immediately
         router.replace('/restricted')
         return

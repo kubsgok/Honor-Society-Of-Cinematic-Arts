@@ -295,7 +295,7 @@ export default function StaffInterfacePage() {
       }
 
       const userType = current.user_type;
-      if (userType === 'Associate'  || userType === "Nominee for Induction") {
+      if (userType === 'Associate' || userType === "Nominee for Induction" || userType === "Alum" || userType === "Officer" || userType === "Vice President" || userType === "Member" || userType === "President" || userType === "Chapter Director") {
         router.replace('/restricted')
         return
       }

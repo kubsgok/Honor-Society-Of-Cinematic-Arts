@@ -228,7 +228,7 @@ export default function BillingPage() {
         return
       }
       const userType = current.user_type;
-      if (userType === 'Associate' || userType === "Nominee for Induction") {
+      if (userType === 'Associate' || userType === "Nominee for Induction" || userType === "Alum" || userType === "Officer" || userType === "Vice President" || userType === "Member" || userType === "President") {
         router.replace('/restricted')
         return
       }
