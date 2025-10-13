@@ -9,6 +9,8 @@ import { InGoodStandingModal } from './InGoodStandingModal'
 import { RankModificationModal } from './RankModificationModal'
 import { PointsLogTable } from './PointsLogTable'
 import { MinutesFilmLogTable } from './MinutesFilmLogTable'
+import { InductionStatusModificationModal } from './InductionStatusModificationModal'
+import { PositionModificationModal } from './PositionModificationModal'
 
 interface User {
   id: string
@@ -65,10 +67,8 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
   const [showInductionFilter, setShowInductionFilter] = useState(false)
   const [inductionStatusFilter, setInductionStatusFilter] = useState<string | null>(null)
   const [isEditRankMode, setIsEditRankMode] = useState(false)
-
-  useEffect(() => {
-    
-  }, [showInductionFilter])
+  const [showInductionStatusModal, setShowInductionStatusModal] = useState(false)
+  const [showEditPositionModal, setShowEditPositionModal] = useState(false)
 
   // Get unique induction status values for filtering
   const uniqueInductionStatuses = Array.from(new Set(users.map(u => u.induction_status).filter(Boolean)))
@@ -94,6 +94,14 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
     setIsEditRankMode(!isEditRankMode)
   }
 
+  const toggleEditInductionStatusMode = () => {
+    setShowInductionStatusModal(!showInductionStatusModal)
+  }
+
+  const toggleEditPositionMode = () => {
+    setShowEditPositionModal(!showEditPositionModal)
+  }
+
   const getPosition = (rank: string) => {
     if (rank !== 'Officer' && rank !== 'Vice President' && rank !== 'President') {
       return null
@@ -115,7 +123,7 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
         return
       }
       setCurrentUser(currentUser)
-      if (currentUser.user_type === 'Officer' || currentUser.user_type === 'Vice President' || currentUser.user_type === 'President' || currentUser.user_type === 'Chapter Director') {
+      if (currentUser.user_type === 'Officer' || currentUser.user_type === 'Vice President' || currentUser.user_type === 'President' || currentUser.user_type === 'Chapter Director' || currentUser.user_type === 'Admin') {
         setIsOfficer(true)
       }
     }
@@ -267,6 +275,50 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
     onRefreshUsers() // Refresh the user data
   }
 
+  const handleSaveInductionStatus = async (userId: string, description: string) => {
+    const response = await fetch('/api/createInductionOverride', {
+      method: 'POST',
+      body: JSON.stringify({
+        userId,
+        description,
+      })
+    })
+    if (!response.ok) {
+      console.error('Failed to create points log')
+      return
+    }
+    const newResponse = await fetch('/api/updateUserInfo', {
+      method: 'PUT',
+      body: JSON.stringify({
+        user_id: userId,
+        modification: 'induction_status',
+      })
+    })
+    if (!newResponse.ok) {
+      console.error('Failed to update user info')
+      return
+    }
+    setShowInductionStatusModal(false)
+    onRefreshUsers() // Refresh the user data
+  }
+
+  const handleSavePosition = async (userId: string, position: string) => {
+    const newResponse = await fetch('/api/updateUserInfo', {
+      method: 'PUT',
+      body: JSON.stringify({
+        user_id: userId,
+        user_type: position,
+        modification: 'user_type',
+      })
+    })
+    if (!newResponse.ok) {
+      console.error('Failed to update user info')
+      return
+    }
+    setShowEditPositionModal(false)
+    onRefreshUsers() // Refresh the user data
+  }
+
   const fetchPointsLog = async (userId: string, userName: string) => {
     try {
       const response = await fetch(`/api/fetchPointsLog?userId=${userId}`)
@@ -336,7 +388,7 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
             <th className="border border-gray-300 px-2 py-2 text-left">
               <div className="flex items-center w-full">
                 <span>Rank</span>
-                {currentUser?.user_type === 'Chapter Director' && (
+                {currentUser?.user_type === 'Admin' && (
                   <span
                     onClick={toggleEditRankMode}
                     className="ml-auto text-white text-xs font-medium rounded-full px-2 py-0.5 bg-[#b66cee] cursor-pointer select-none"
@@ -346,11 +398,23 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
                 )}
               </div>
             </th>
-            <th className="border border-gray-300 px-3 py-2 text-left">Position</th>
+            <th className="border border-gray-300 px-3 py-2 text-left">
+              <div className="flex items-center w-full">
+                <span>Position</span>
+                {(currentUser?.user_type === "Chapter Director" || currentUser?.user_type === "Admin") && (
+                  <span
+                    onClick={toggleEditPositionMode}
+                    className="ml-auto text-white text-xs font-medium rounded-full px-2 py-0.5 bg-[#b66cee] cursor-pointer select-none"
+                  >
+                    Edit
+                  </span>
+                )}
+              </div>
+            </th>
             <th className="border border-gray-300 px-3 py-2 text-left">
             <div className="flex items-center w-full">
               <span>In Good Standing</span>
-              {currentUser?.user_type === 'Chapter Director' && (
+              {currentUser?.user_type === 'Chapter Director' || currentUser?.user_type === 'Admin' && (
                 <span
                   onClick={toggleEditInGoodStandingMode}
                   className="ml-auto text-white text-xs font-medium rounded-full px-2 py-0.5 bg-[#b66cee] cursor-pointer select-none ml-2"
@@ -388,8 +452,15 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
               </div>
             </th>
             <th className="border border-gray-300 px-3 py-2 text-left">
-              <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-4 justify-between w-full">
                 <span>Induction Status</span>
+                {currentUser?.user_type === "Chapter Director" || currentUser?.user_type === "Admin" && (
+                <span
+                  onClick={toggleEditInductionStatusMode}
+                  className="ml-auto text-white text-xs font-medium rounded-full px-2 py-0.5 bg-[#b66cee] cursor-pointer select-none ml-2"
+                >
+                  Edit
+                </span>)}
                 <div className="relative">
                   {inductionStatusFilter ? (
                     <FunnelX
@@ -561,6 +632,35 @@ export function DashboardTable({ users, onRefreshUsers }: DashboardTableProps) {
         onClose={() => setIsEditRankMode(false)}
         onSave={(selectedUserIds: string[], newRank: string) => handleSaveRankModification(selectedUserIds, newRank)}
         users={users}
+      />
+      <InductionStatusModificationModal
+        isOpen={showInductionStatusModal}
+        onClose={() => setShowInductionStatusModal(false)}
+        users={users}
+        onSave={(description, memberId) => {
+          const idToUse = memberId ?? currentUser?.id
+          if (!idToUse) {
+            console.error('No member selected for induction status update')
+            return
+          }
+          // call the proper handler for induction status changes
+          handleSaveInductionStatus(idToUse, description)
+        }}
+      />
+      <PositionModificationModal
+        isOpen={showEditPositionModal}
+        onClose={() => setShowEditPositionModal(false)}
+        users={users}
+        onSave={(position: string, memberId?: string | null) => {
+          // modal provides (position, memberId) -> our handler expects (userId, position)
+          const userId = memberId ?? currentUser?.id
+          if (!userId) {
+            console.error('No user selected for position update')
+            return
+          }
+          // call async handler but don't make this wrapper async (keep returned type void)
+          handleSavePosition(userId, position).catch((err) => console.error('Failed to save position:', err))
+        }}
       />
       {showPointsLog && (
         <div className="mt-6">

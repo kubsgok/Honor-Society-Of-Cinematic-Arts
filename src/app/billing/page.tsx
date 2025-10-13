@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { NavBar } from '../components/NavBar'
 import jsPDF from 'jspdf'
 
@@ -56,6 +57,7 @@ type InvoiceData = {
 }
 
 export default function BillingPage() {
+  const router = useRouter() // added
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [chapter, setChapter] = useState<Chapter | null>(null)
@@ -63,6 +65,10 @@ export default function BillingPage() {
   const [license, setLicense] = useState<License | null>(null)
   const [confirmed, setConfirmed] = useState(false)
   const [generating, setGenerating] = useState(false)
+  const [checkingUser, setCheckingUser] = useState(true) // NEW
+
+  const CHAPTER_FEE = 150
+  const MEMBER_FEE = 25
 
   const categorizeMembers = (members: Member[]) => {
     console.log('=== CATEGORIZE MEMBERS DEBUG ===')
@@ -359,10 +365,38 @@ export default function BillingPage() {
     }
   }
 
+  const getCurrentUser = async (): Promise<{ user_type?: string } | null> => {
+    try {
+      const res = await fetch('/api/getCurrentUser')
+      if (!res.ok) return null
+      const data = await res.json()
+      return data
+    } catch (e) {
+      console.error('Error fetching current user:', e)
+      return null
+    }
+  }
+
   useEffect(() => {
-    const load = async () => {
+    // init: check role first, then load billing data only if allowed
+    async function init() {
+      setCheckingUser(true)
+      const current = await getCurrentUser()
+      setCheckingUser(false)
+
+      if (!current) {
+        // Not signed in -> redirect to login
+        router.replace('/login')
+        return
+      }
+      const userType = current.user_type;
+      if (userType === 'Associate' || userType === "Nominee for Induction" || userType === "Alum" || userType === "Officer" || userType === "Vice President" || userType === "Member" || userType === "President") {
+        router.replace('/restricted')
+        return
+      }
+
+      // allowed -> load billing data
       setLoading(true)
-      setError(null)
       try {
         // Fetch current user's chapter, all users, and licenses
         const [chapterResponse, usersResponse, licensesResponse] = await Promise.all([
@@ -541,8 +575,22 @@ export default function BillingPage() {
         setLoading(false)
       }
     }
-    load()
+
+    init()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  if (checkingUser) {
+    return (
+      <div>
+        <NavBar />
+        <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8 py-6">
+          <h1 className="text-2xl font-semibold mb-6">Billing</h1>
+          <p className="text-gray-600">Checking permissions…</p>
+        </div>
+      </div>
+    )
+  }
 
   if (loading) {
     return (
