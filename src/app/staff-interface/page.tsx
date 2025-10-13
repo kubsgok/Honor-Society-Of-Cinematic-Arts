@@ -8,6 +8,8 @@ type Chapter = {
   id: string
   number?: string | null
   name: string
+  director_id: string
+  director_name?: string | null
   director_email?: string | null
   users_count?: number | null
 }
@@ -74,7 +76,7 @@ export default function StaffInterfacePage() {
 
   // Helper: build CSV string from chapters
   const toCSV = (rows: Chapter[]) => {
-    const headers = ['id', 'chapter_number', 'chapter_name', 'director_email', 'members']
+    const headers = ['id', 'chapter_number', 'chapter_name', 'director_name', 'director_email', 'members']
     const escape = (v: unknown) => {
       const s = String(v ?? '')
       return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
@@ -86,6 +88,7 @@ export default function StaffInterfacePage() {
           c.id,
           c.number ?? '',
           c.name ?? '',
+          c.director_name ?? '',
           c.director_email ?? '',
           c.users_count ?? 0,
         ].map(escape).join(',')
@@ -160,6 +163,8 @@ export default function StaffInterfacePage() {
       id: newId,
       number: newChapter.number || null,
       name: newChapter.name,
+      director_id: 'temp-director-id',
+      director_name: null,
       director_email: newChapter.director_email || null,
       users_count: 0
     }
@@ -232,38 +237,68 @@ export default function StaffInterfacePage() {
           id: string
           full_name: string
           chapter_id: string
-          email: string
-          user_type: string
-          rank?: string
-          induction_status?: string
-          in_good_standing: boolean
-          points: number
-          minutes: number
-          seconds: number
-          grad_year?: number
-          grad_month?: string
+          chapter_number: number
+          school: string
+          director_id: string
+          director_name?: string | null
+          director_email?: string | null
+          official: boolean
+          rejected: boolean
+          member_count?: number
         }
-
-        const transformedUsers: User[] = (usersData || []).map((user: ApiUser) => {
-          const userChapter = transformedChapters.find(c => c.id === user.chapter_id) || transformedChapters[0]
-          const currentYear = new Date().getFullYear()
-          const gradYear = user.grad_year
-          const isGraduatingThisYear = gradYear !== null && gradYear !== undefined && gradYear === currentYear
-
-          return {
-            id: user.id,
-            full_name: user.full_name,
-            email: user.email,
-            chapter_id: user.chapter_id,
-            chapter_name: userChapter?.name || 'Unknown Chapter',
-            chapter_number: userChapter?.number || 'Unknown',
-            position: user.user_type,
-            rank: user.rank || null,
-            user_type: user.user_type as 'student' | 'chapter_director',
-            induction_status: user.induction_status || 'Unknown',
-            grad_year: user.grad_year || null,
-            grad_month: user.grad_month || null,
-            graduating_this_year: isGraduatingThisYear
+        
+        // Filter and transform chapters - exclude non-official and rejected chapters
+        const rawChapters = chaptersData.chaptersData || []
+        const validChapters = rawChapters.filter((chapter: ApiChapter) => 
+          chapter.official === true && chapter.rejected === false
+        )
+        
+        const transformedChapters: Chapter[] = validChapters.map((chapter: ApiChapter) => ({
+          id: chapter.chapter_id, // ✅ Use actual chapter_id
+          number: chapter.chapter_number?.toString() || null,
+          name: chapter.school || 'Unknown School',
+          director_id: chapter.director_id,
+          director_name: chapter.director_name || null,
+          director_email: chapter.director_email || null,
+          users_count: chapter.member_count || 0
+        }))
+        
+        console.log('🔥 STAFF: Total chapters from API:', rawChapters.length)
+        console.log('🔥 STAFF: Valid chapters (official & not rejected):', validChapters.length)
+        console.log('🔥 STAFF: Transformed chapters:', transformedChapters)
+        
+        setChapters(transformedChapters)
+        
+        // Fetch users from the API
+        console.log('🔥 STAFF: Fetching users from API...')
+        const usersResponse = await fetch('/api/fetchUsers')
+        console.log('🔥 STAFF: Users response status:', usersResponse.status)
+        
+        if (!usersResponse.ok) {
+          const errorData = await usersResponse.json()
+          console.error('🔥 STAFF: Failed to fetch users:', errorData)
+          // Set empty users array if fetch fails
+          setUsers([])
+          setFilteredUsers([])
+        } else {
+          const usersData = await usersResponse.json()
+          console.log('🔥 STAFF: Raw users data:', usersData)
+          
+          // Transform users data to match our User interface
+          interface ApiUser {
+            id: string
+            full_name: string
+            chapter_id: string
+            email: string
+            user_type: string
+            rank?: string
+            induction_status?: string
+            in_good_standing: boolean
+            points: number
+            minutes: number
+            seconds: number
+            grad_year?: number
+            grad_month?: string
           }
         })
         
@@ -640,7 +675,7 @@ export default function StaffInterfacePage() {
                   >
                     <div className="col-span-2 font-medium">{c.number ?? '-'}</div>
                     <div className="col-span-5">{c.name}</div>
-                    <div className="col-span-3 text-sm text-gray-600">{c.director_email ?? '-'}</div>
+                    <div className="col-span-3 text-sm text-gray-600">{c.director_name ?? c.director_email ?? '-'}</div>
                     <div className="col-span-2 text-right">{c.users_count ?? 0}</div>
                   </button>
                 </li>
