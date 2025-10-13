@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
         if (user?.email) {
           const { data: userData } = await supabase
             .from('users')
-            .select('id, full_name, email, chapter_id, user_type, rank, induction_status, in_good_standing, points, minutes, seconds, grad_month, grad_year')
+            .select('id, full_name, email, chapter_id, user_type, rank, induction_status, in_good_standing, points, minutes, seconds, grad_month, grad_year, license_paid')
             .order('full_name', { ascending: true })
 
             return NextResponse.json(userData);
