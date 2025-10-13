@@ -8,6 +8,8 @@ type Chapter = {
   id: string
   number?: string | null
   name: string
+  director_id: string
+  director_name?: string | null
   director_email?: string | null
   users_count?: number | null
 }
@@ -59,7 +61,7 @@ export default function StaffInterfacePage() {
 
   // Helper: build CSV string from chapters
   const toCSV = (rows: Chapter[]) => {
-    const headers = ['id', 'chapter_number', 'chapter_name', 'director_email', 'members']
+    const headers = ['id', 'chapter_number', 'chapter_name', 'director_name', 'director_email', 'members']
     const escape = (v: unknown) => {
       const s = String(v ?? '')
       return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
@@ -71,6 +73,7 @@ export default function StaffInterfacePage() {
           c.id,
           c.number ?? '',
           c.name ?? '',
+          c.director_name ?? '',
           c.director_email ?? '',
           c.users_count ?? 0,
         ].map(escape).join(',')
@@ -145,6 +148,8 @@ export default function StaffInterfacePage() {
       id: newId,
       number: newChapter.number || null,
       name: newChapter.name,
+      director_id: 'temp-director-id',
+      director_name: null,
       director_email: newChapter.director_email || null,
       users_count: 0
     }
@@ -184,17 +189,31 @@ export default function StaffInterfacePage() {
           chapter_number: number
           school: string
           director_id: string
+          director_name?: string | null
+          director_email?: string | null
+          official: boolean
+          rejected: boolean
+          member_count?: number
         }
         
-        // Update the transformedChapters section (around line 185):
-        const transformedChapters: Chapter[] = (chaptersData.chaptersData || []).map((chapter: ApiChapter) => ({
+        // Filter and transform chapters - exclude non-official and rejected chapters
+        const rawChapters = chaptersData.chaptersData || []
+        const validChapters = rawChapters.filter((chapter: ApiChapter) => 
+          chapter.official === true && chapter.rejected === false
+        )
+        
+        const transformedChapters: Chapter[] = validChapters.map((chapter: ApiChapter) => ({
           id: chapter.chapter_id, // ✅ Use actual chapter_id
           number: chapter.chapter_number?.toString() || null,
           name: chapter.school || 'Unknown School',
-          director_email: null,
-          users_count: null
+          director_id: chapter.director_id,
+          director_name: chapter.director_name || null,
+          director_email: chapter.director_email || null,
+          users_count: chapter.member_count || 0
         }))
         
+        console.log('🔥 STAFF: Total chapters from API:', rawChapters.length)
+        console.log('🔥 STAFF: Valid chapters (official & not rejected):', validChapters.length)
         console.log('🔥 STAFF: Transformed chapters:', transformedChapters)
         
         setChapters(transformedChapters)
@@ -602,7 +621,7 @@ export default function StaffInterfacePage() {
                   >
                     <div className="col-span-2 font-medium">{c.number ?? '-'}</div>
                     <div className="col-span-5">{c.name}</div>
-                    <div className="col-span-3 text-sm text-gray-600">{c.director_email ?? '-'}</div>
+                    <div className="col-span-3 text-sm text-gray-600">{c.director_name ?? c.director_email ?? '-'}</div>
                     <div className="col-span-2 text-right">{c.users_count ?? 0}</div>
                   </button>
                 </li>
