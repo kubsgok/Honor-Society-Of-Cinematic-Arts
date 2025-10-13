@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { NavBar } from '@/app/components/NavBar'
-import { Shield, ShieldOff, AlertTriangle } from 'lucide-react'
 
 type Chapter = {
   id: string
@@ -13,8 +12,6 @@ type Chapter = {
   director_name?: string | null
   director_email?: string | null
   users_count?: number | null
-  status?: string
-  in_good_standing?: boolean
 }
 
 type User = {
@@ -33,22 +30,9 @@ type User = {
   graduating_this_year: boolean
 }
 
-interface CurrentUser {
-  id: string
-  full_name: string
-  email: string
-  user_type: string
-  rank: string
-  induction_status: string
-  in_good_standing: boolean
-  points: number
-  minutes: number
-  seconds: number
-}
-
 export default function StaffInterfacePage() {
   const router = useRouter()
-  const [loading, setLoading] = useState(false) // only true while fetching data after auth check
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [chapters, setChapters] = useState<Chapter[]>([])
   const [users, setUsers] = useState<User[]>([])
@@ -74,8 +58,6 @@ export default function StaffInterfacePage() {
     name: '',
     director_email: ''
   })
-
-  const [checkingUser, setCheckingUser] = useState(true)
 
   // Helper: build CSV string from chapters
   const toCSV = (rows: Chapter[]) => {
@@ -182,63 +164,27 @@ export default function StaffInterfacePage() {
     setShowCreateModal(false)
   }
 
-  const getCurrentUser = async (): Promise<CurrentUser | null> => {
-    try {
-      const res = await fetch('/api/getCurrentUser')
-      if (!res.ok) return null
-      const data = await res.json()
-      return data as CurrentUser
-    } catch (e) {
-      console.error('Error fetching current user:', e)
-      return null
-    }
-  }
-
-  // load data (chapters + users) — run only after permission check passes
-  const loadData = async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      console.log('🔥 STAFF: Fetching chapters from API...')
-      const chaptersResponse = await fetch('/api/fetchChapters')
-      console.log('🔥 STAFF: Chapters response status:', chaptersResponse.status)
-      if (!chaptersResponse.ok) {
-        const errorData = await chaptersResponse.json()
-        throw new Error(errorData.error || 'Failed to fetch chapters')
-      }
-      const chaptersData = await chaptersResponse.json()
-      console.log('🔥 STAFF: Raw chapters data:', chaptersData)
-
-      interface ApiChapter {
-        chapter_id: string
-        chapter_number: number
-        school: string
-        director_id: string
-      }
-      const transformedChapters: Chapter[] = (chaptersData.chaptersData || []).map((chapter: ApiChapter) => ({
-        id: chapter.chapter_id,
-        number: chapter.chapter_number?.toString() || null,
-        name: chapter.school || 'Unknown School',
-        director_email: null,
-        users_count: null
-      }))
-      console.log('🔥 STAFF: Transformed chapters:', transformedChapters)
-      setChapters(transformedChapters)
-
-      console.log('🔥 STAFF: Fetching users from API...')
-      const usersResponse = await fetch('/api/fetchUsers')
-      console.log('🔥 STAFF: Users response status:', usersResponse.status)
-      if (!usersResponse.ok) {
-        const errorData = await usersResponse.json()
-        console.error('🔥 STAFF: Failed to fetch users:', errorData)
-        setUsers([])
-        setFilteredUsers([])
-      } else {
-        const usersData = await usersResponse.json()
-        console.log('🔥 STAFF: Raw users data:', usersData)
-        interface ApiUser {
-          id: string
-          full_name: string
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        console.log('🔥 STAFF: Fetching chapters from API...')
+        
+        // Fetch chapters from the API
+        const chaptersResponse = await fetch('/api/fetchChapters')
+        console.log('🔥 STAFF: Chapters response status:', chaptersResponse.status)
+        
+        if (!chaptersResponse.ok) {
+          const errorData = await chaptersResponse.json()
+          throw new Error(errorData.error || 'Failed to fetch chapters')
+        }
+        
+        const chaptersData = await chaptersResponse.json()
+        console.log('🔥 STAFF: Raw chapters data:', chaptersData)
+        
+        // Transform the API response to match our Chapter interface
+        interface ApiChapter {
           chapter_id: string
           chapter_number: number
           school: string
@@ -303,47 +249,50 @@ export default function StaffInterfacePage() {
             grad_year?: number
             grad_month?: string
           }
-        })
-        
-        console.log('🔥 STAFF: Transformed users:', transformedUsers)
-        setUsers(transformedUsers)
-        setFilteredUsers(transformedUsers)
+          
+          //fetch chapters
+          //for each user, filter through 
+
+          const transformedUsers: User[] = (usersData || []).map((user: ApiUser) => {
+            // Find the chapter for this user (we'll need to enhance this logic)
+            const userChapter = transformedChapters.find(c => c.id === user.chapter_id) || transformedChapters[0]
+            
+            // Calculate graduating_this_year based on grad_year
+            const currentYear = new Date().getFullYear() // 2025
+            const gradYear = user.grad_year
+            const isGraduatingThisYear = gradYear !== null && gradYear !== undefined && gradYear === currentYear
+            
+            return {
+              id: user.id,
+              full_name: user.full_name,
+              email: user.email,
+              chapter_id: user.chapter_id,
+              chapter_name: userChapter?.name || 'Unknown Chapter',
+              chapter_number: userChapter?.number || 'Unknown',
+              position: user.user_type,
+              rank: user.rank || null,
+              user_type: user.user_type as 'student' | 'chapter_director',
+              induction_status: user.induction_status || 'Unknown',
+              grad_year: user.grad_year || null,
+              grad_month: user.grad_month || null,
+              graduating_this_year: isGraduatingThisYear
+            }
+          })
+          
+          console.log('🔥 STAFF: Transformed users:', transformedUsers)
+          setUsers(transformedUsers)
+          setFilteredUsers(transformedUsers)
+        }
+      } catch (e) {
+        console.error('🔥 STAFF: Error loading data:', e)
+        const msg = e instanceof Error ? e.message : 'Failed to load data'
+        setError(msg)
+      } finally {
+        setLoading(false)
+        console.log('🔥 STAFF: Loading finished')
       }
-    } catch (e) {
-      console.error('🔥 STAFF: Error loading data:', e)
-      const msg = e instanceof Error ? e.message : 'Failed to load data'
-      setError(msg)
-    } finally {
-      setLoading(false)
-      console.log('🔥 STAFF: Loading finished')
     }
-  }
-
-  useEffect(() => {
-    // init: check current user first, redirect if Associate, otherwise load data
-    async function init() {
-      setCheckingUser(true)
-      const current = await getCurrentUser()
-      setCheckingUser(false)
-
-      if (!current) {
-        // not signed in -> send to login
-        router.replace('/login')
-        return
-      }
-
-      const userType = current.user_type;
-      if (userType === 'Associate' || userType === "Nominee for Induction" || userType === "Alum" || userType === "Officer" || userType === "Vice President" || userType === "Member" || userType === "President" || userType === "Chapter Director") {
-        router.replace('/restricted')
-        return
-      }
-
-      // allowed -> load data
-      await loadData()
-    }
-
-    init()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    load()
   }, [])
 
   // Update filtered users when filters change
@@ -353,6 +302,7 @@ export default function StaffInterfacePage() {
 
       // Apply filters
       if (chapterFilter) {
+        // Check both chapter_number and chapter_id for flexibility
         filtered = filtered.filter(u => 
           u.chapter_number === chapterFilter || 
           u.chapter_id === chapterFilter ||
@@ -384,12 +334,15 @@ export default function StaffInterfacePage() {
         filtered = filtered.filter(u => {
           const userStatus = (u.induction_status || '').toLowerCase().trim()
           const filterStatus = inductionFilter.toLowerCase().trim()
+          
+          // Handle special cases for better matching
           if (filterStatus === 'not met') {
             return userStatus === 'not met' || userStatus === 'not_met' || userStatus === 'notmet'
           }
           if (filterStatus === 'overridden') {
             return userStatus === 'overridden' || userStatus === 'overriden' || userStatus === 'override'
           }
+          
           return userStatus === filterStatus
         })
       }
@@ -414,6 +367,7 @@ export default function StaffInterfacePage() {
               bVal = b.position
               break
             case 'rank':
+              // Define rank hierarchy (highest to lowest)
               const rankOrder = {
                 'Laureate of the Society': 1,
                 'Member Summa Honore': 2,
@@ -421,12 +375,12 @@ export default function StaffInterfacePage() {
                 'Member Cum Honore': 4,
                 'Member First Class': 5,
                 'Member': 6,
-                '': 999
+                '': 999 // Empty/null ranks go to bottom
               }
               aVal = rankOrder[a.rank as keyof typeof rankOrder] || 999
               bVal = rankOrder[b.rank as keyof typeof rankOrder] || 999
               break
-            case 'grad_year':
+            case 'grad_year':  // ✅ Add this case
               aVal = a.grad_year || 0
               bVal = b.grad_year || 0
               break
@@ -448,17 +402,6 @@ export default function StaffInterfacePage() {
       setFilteredUsers(filtered)
     }
   }, [users, chapterFilter, positionFilter, rankFilter, graduationFilter, gradYearFilter, inductionFilter, sortBy, sortOrder])
-
-  if (checkingUser) {
-    return (
-      <div>
-        <NavBar />
-        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8 py-6">
-          <p className="text-gray-600">Checking permissions…</p>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div>
@@ -665,10 +608,9 @@ export default function StaffInterfacePage() {
           <div className="mt-6 overflow-hidden rounded-lg border border-gray-200">
             <div className="grid grid-cols-12 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700">
               <div className="col-span-2">Chapter #</div>
-              <div className="col-span-4">Chapter name</div>
+              <div className="col-span-5">Chapter name</div>
               <div className="col-span-3">Chapter director</div>
-              <div className="col-span-2">Status</div>
-              <div className="col-span-1 text-right">Members</div>
+              <div className="col-span-2 text-right">Members</div>
             </div>
             <ul className="divide-y divide-gray-200">
               {chapters.map((c) => (
@@ -678,32 +620,9 @@ export default function StaffInterfacePage() {
                     onClick={() => router.push(`/chapters/${c.id}`)}
                   >
                     <div className="col-span-2 font-medium">{c.number ?? '-'}</div>
-                    <div className="col-span-4">{c.name}</div>
+                    <div className="col-span-5">{c.name}</div>
                     <div className="col-span-3 text-sm text-gray-600">{c.director_name ?? c.director_email ?? '-'}</div>
-                    <div className="col-span-2 flex items-center gap-2 text-sm">
-                      {c.status === 'In Good Standing' && (
-                        <>
-                          <Shield className="h-4 w-4 text-green-600" />
-                          <span className="text-green-700">In Good Standing</span>
-                        </>
-                      )}
-                      {c.status === 'On Probation' && (
-                        <>
-                          <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                          <span className="text-yellow-700">On Probation</span>
-                        </>
-                      )}
-                      {c.status === 'Status Revoked' && (
-                        <>
-                          <ShieldOff className="h-4 w-4 text-red-600" />
-                          <span className="text-red-700">Status Revoked</span>
-                        </>
-                      )}
-                      {!c.status && (
-                        <span className="text-gray-500">Unknown</span>
-                      )}
-                    </div>
-                    <div className="col-span-1 text-right">{c.users_count ?? 0}</div>
+                    <div className="col-span-2 text-right">{c.users_count ?? 0}</div>
                   </button>
                 </li>
               ))}
@@ -742,7 +661,7 @@ export default function StaffInterfacePage() {
                           user.rank === 'Officer' ? 'bg-purple-100 text-purple-800' :
                           user.rank === 'Member' ? 'bg-green-100 text-green-800' :
                           user.rank === 'Nominee' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg_gray-100 text-gray-800'
+                          'bg-gray-100 text-gray-800'
                         }`}>
                           {user.rank || 'N/A'}
                         </span>
