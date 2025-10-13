@@ -55,13 +55,11 @@ export default function DashboardPage() {
       }
 
       // only fetch users for allowed roles
-      await getUsers()
+      await loadDashboardData()
     }
 
     init()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    loadDashboardData()
-  }, [])
+  }, [router])
 
   const loadDashboardData = async () => {
     try {
