@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { NavBar } from '../components/NavBar'
 import jsPDF from 'jspdf'
 
@@ -33,13 +34,15 @@ type InvoiceData = {
 }
 
 export default function BillingPage() {
+  const router = useRouter() // added
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [chapter, setChapter] = useState<Chapter | null>(null)
   const [members, setMembers] = useState<Member[]>([])
   const [confirmed, setConfirmed] = useState(false)
   const [generating, setGenerating] = useState(false)
-  
+  const [checkingUser, setCheckingUser] = useState(true) // NEW
+
   const CHAPTER_FEE = 150
   const MEMBER_FEE = 25
 
@@ -200,10 +203,38 @@ export default function BillingPage() {
     }
   }
 
+  const getCurrentUser = async (): Promise<{ user_type?: string } | null> => {
+    try {
+      const res = await fetch('/api/getCurrentUser')
+      if (!res.ok) return null
+      const data = await res.json()
+      return data
+    } catch (e) {
+      console.error('Error fetching current user:', e)
+      return null
+    }
+  }
+
   useEffect(() => {
-    const load = async () => {
+    // init: check role first, then load billing data only if allowed
+    async function init() {
+      setCheckingUser(true)
+      const current = await getCurrentUser()
+      setCheckingUser(false)
+
+      if (!current) {
+        // Not signed in -> redirect to login
+        router.replace('/login')
+        return
+      }
+      const userType = current.user_type;
+      if (userType === 'Associate' || userType === "Nominee for Induction") {
+        router.replace('/restricted')
+        return
+      }
+
+      // allowed -> load billing data
       setLoading(true)
-      setError(null)
       try {
         // TODO: Replace with actual API calls to get current user's chapter and members
         // Mock data for now
@@ -213,7 +244,7 @@ export default function BillingPage() {
           name: 'Singapore American School',
           director_email: 'director@sas.edu'
         })
-        
+
         setMembers([
           { id: '1', full_name: 'John Smith', email: 'john@sas.edu', rank: 'Member', induction_status: 'Inducted', user_type: 'Student', grad_month: 'June', grad_year: 2025 },
           { id: '2', full_name: 'Jane Doe', email: 'jane@sas.edu', rank: null, induction_status: 'Inducted', user_type: 'Student', grad_month: 'May', grad_year: 2026 },
@@ -226,8 +257,22 @@ export default function BillingPage() {
         setLoading(false)
       }
     }
-    load()
+
+    init()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  if (checkingUser) {
+    return (
+      <div>
+        <NavBar />
+        <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8 py-6">
+          <h1 className="text-2xl font-semibold mb-6">Billing</h1>
+          <p className="text-gray-600">Checking permissions…</p>
+        </div>
+      </div>
+    )
+  }
 
   if (loading) {
     return (

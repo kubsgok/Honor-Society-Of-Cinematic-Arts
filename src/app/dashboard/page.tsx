@@ -22,7 +22,6 @@ export default function DashboardPage() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [checkingUser, setCheckingUser] = useState(true) // NEW: true until role resolved
   const router = useRouter()
 
@@ -31,7 +30,6 @@ export default function DashboardPage() {
     async function init() {
       setCheckingUser(true)
       const fetchedCurrent = await getCurrentUser()
-      setCurrentUser(fetchedCurrent)
       setCheckingUser(false)
 
       if (!fetchedCurrent) {
